@@ -1,5 +1,7 @@
-# نصب‌کننده به‌عنوان Release asset منتشر می‌شود، نه داخل مخزن
+# نصب‌کننده‌ها داخل مخزن نگه داشته می‌شوند تا آدرس مستقیم و بدون ریدایرکت
+# raw.githubusercontent.com برای ثبت در Microsoft Partner Center در دسترس باشد.
 *.msi
+!Shelter-*.msi
 *.exe
 *.pdb
 
