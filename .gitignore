@@ -1,0 +1,9 @@
+# نصب‌کننده به‌عنوان Release asset منتشر می‌شود، نه داخل مخزن
+*.msi
+*.exe
+*.pdb
+
+# خروجی‌های build
+build/
+dist/
+out/
