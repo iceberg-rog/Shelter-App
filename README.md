@@ -4,6 +4,12 @@
 
 نسخهٔ فعلی: **1.0.0** — فقط **Windows x64**، حداقل **Windows 10**.
 
+## مستندات فنی
+
+[مستندات فنی DNSهای رفع تحریم و کاهش پینگ (PDF)](docs/Shelter-DNS-Ping-Technical-Guide.pdf) —
+سازوکار DNS رفع تحریم، اصول کاهش پینگ، معماری Shelter، نصب و عیب‌یابی.
+منبع سند در `docs/technical-guide` است و با `docs/technical-guide/build.sh` ساخته می‌شود.
+
 ## دانلود
 
 آخرین نصب‌کننده از بخش [Releases](../../releases/latest) — فایل `Shelter-1.0.0.msi`.

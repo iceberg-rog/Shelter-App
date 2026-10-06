@@ -1,0 +1,1501 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>مستندات فنی DNS رفع تحریم و اپلیکیشن کاهش پینگ Shelter</title>
+<meta name="author" content="Shelter">
+<meta name="description" content="مستندات فنی کامل دربارهٔ DNSهای رفع تحریم، اصول کاهش پینگ و معماری اپلیکیشن Shelter">
+<link rel="stylesheet" href="style.css">
+<script>
+/* فهرست مطالب و شماره‌گذاری بخش‌ها هنگام بارگذاری ساخته می‌شود.
+   render.cjs شمارهٔ صفحه‌ها را از اجرای اول در window.__tocPages قرار می‌دهد. */
+document.addEventListener("DOMContentLoaded", () => {
+  const fa = (s) => String(s).replace(/\d/g, (d) => "۰۱۲۳۴۵۶۷۸۹"[d]);
+  const pages = window.__tocPages || {};
+  const list = document.getElementById("toc-list");
+  let ch = 0, sec = 0, current = null, auto = 0;
+  for (const h of document.querySelectorAll("main h1.chapter, main h2")) {
+    if (!h.id) h.id = "h-" + (++auto);
+    if (h.classList.contains("front")) { current = null; continue; }
+    if (h.tagName === "H1") {
+      sec = 0;
+      let label;
+      if (h.dataset.num) label = h.dataset.num;
+      else label = fa(++ch);
+      const span = document.createElement("span");
+      span.className = "num"; span.textContent = label;
+      h.prepend(span, " ");
+      h.dataset.label = label;
+      current = document.createElement("li");
+      current.className = "l1";
+      current.innerHTML = `<a href="#${h.id}"><span class="n">${label}</span><span>${h.lastChild.textContent.trim()}</span><span class="dots"></span><span class="pg">${pages[h.id] ? fa(pages[h.id]) : ""}</span></a><ol></ol>`;
+      list.appendChild(current);
+    } else if (current && !h.classList.contains("no-toc")) {
+      const chLabel = current.querySelector(".n").textContent;
+      const label = /^[۰-۹]+$/.test(chLabel) ? `${chLabel}٫${fa(++sec)}` : `${chLabel}-${fa(++sec)}`;
+      const title = h.textContent.trim();
+      h.innerHTML = `<span class="secnum">${label}</span> ` + h.innerHTML;
+      const li = document.createElement("li");
+      li.className = "l2";
+      li.innerHTML = `<a href="#${h.id}"><span class="n">${label}</span><span>${title}</span><span class="dots"></span><span class="pg">${pages[h.id] ? fa(pages[h.id]) : ""}</span></a>`;
+      current.querySelector("ol").appendChild(li);
+    }
+  }
+});
+</script>
+</head>
+<body>
+
+<!-- نشانه‌های پیکان مشترک برای همهٔ شکل‌ها -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#3d4a5a"/></marker>
+    <marker id="arr-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#0f8a7e"/></marker>
+    <marker id="arr-b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#1d5c8f"/></marker>
+    <marker id="arr-r" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#b4462f"/></marker>
+  </defs>
+</svg>
+
+<!-- ======================= جلد ======================= -->
+<section class="cover">
+  <svg class="grid" viewBox="0 0 210 297" preserveAspectRatio="none" aria-hidden="true">
+    <g stroke="#fff" stroke-width=".2" fill="none">
+      <path d="M0 40 H210 M0 80 H210 M0 120 H210 M0 160 H210 M0 200 H210 M0 240 H210 M0 280 H210"/>
+      <path d="M30 0 V297 M70 0 V297 M110 0 V297 M150 0 V297 M190 0 V297"/>
+    </g>
+  </svg>
+  <div class="inner">
+    <p class="kicker">مستندات فنی · نسخهٔ ۱٫۰</p>
+    <div class="title">DNSهای رفع تحریم<br>و اپلیکیشن کاهش پینگ</div>
+    <p class="sub">از سازوکار DNS هوشمند و پراکسی SNI تا مسیریابی هم‌پوشان، تونل UDP، درایور Wintun و Windows Filtering Platform — همراه با معماری، نصب، پیکربندی و عیب‌یابی اپلیکیشن <span class="en">Shelter</span>.</p>
+  </div>
+  <svg class="emblem" viewBox="0 0 200 200" aria-hidden="true">
+    <defs>
+      <linearGradient id="sg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5fd0c2"/><stop offset="1" stop-color="#2a7fc0"/></linearGradient>
+    </defs>
+    <circle cx="100" cy="100" r="92" fill="none" stroke="rgba(255,255,255,.12)" stroke-width="1.5"/>
+    <circle cx="100" cy="100" r="70" fill="none" stroke="rgba(255,255,255,.10)" stroke-width="1.5"/>
+    <path d="M100 30 L152 50 V98 C152 132 130 156 100 170 C70 156 48 132 48 98 V50 Z" fill="url(#sg)" opacity=".95"/>
+    <path d="M100 30 L152 50 V98 C152 132 130 156 100 170 Z" fill="#000" opacity=".12"/>
+    <g fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round">
+      <path d="M74 112 Q100 86 126 112" opacity=".55"/>
+      <path d="M84 124 Q100 108 116 124" opacity=".8"/>
+    </g>
+    <circle cx="100" cy="136" r="6.5" fill="#fff"/>
+  </svg>
+  <div class="meta">
+    <div><b>محصول</b>Shelter 1.0.0 — Windows x64</div>
+    <div><b>تاریخ</b>۱۴ مهر ۱۴۰۵</div>
+    <div><b>زبان</b>فارسی</div>
+    <div><b>مخاطب</b>کاربران حرفه‌ای، پشتیبانی و توسعه‌دهندگان</div>
+  </div>
+</section>
+
+<main>
+
+<!-- ======================= دربارهٔ سند ======================= -->
+<h1 class="chapter front" id="about">دربارهٔ این سند</h1>
+
+<table class="kv">
+  <tbody>
+    <tr><td>عنوان</td><td>مستندات فنی DNSهای رفع تحریم و اپلیکیشن کاهش پینگ (<span class="en">Shelter</span>)</td></tr>
+    <tr><td>نسخهٔ سند</td><td>۱٫۰ — ۱۴ مهر ۱۴۰۵</td></tr>
+    <tr><td>نسخهٔ محصول مرجع</td><td><span class="en">Shelter 1.0.0</span>، نصب‌کنندهٔ <code>Shelter-1.0.0.msi</code></td></tr>
+    <tr><td>سکوی هدف</td><td>Windows 10 و جدیدتر، معماری x64</td></tr>
+    <tr><td>منابع اطلاعات محصول</td><td>فایل‌های <code>README.md</code>، <code>RELEASE.md</code> و <code>RELEASE_NOTES.md</code> مخزن، و جدول‌های پایگاه‌دادهٔ نصب‌کنندهٔ MSI (فهرست فایل‌ها، کامپوننت‌ها، اکشن‌های سفارشی و قواعد ارتقا)</td></tr>
+    <tr><td>مخاطبان</td><td>کاربران حرفه‌ای و گیمرها، تیم پشتیبانی، مدیران شبکه، و توسعه‌دهندگانی که روی Shelter یا سرویس‌های مشابه کار می‌کنند</td></tr>
+  </tbody>
+</table>
+
+<h3>قرارداد برچسب‌ها</h3>
+<p>بخشی از این سند توضیح اصول عمومی است و بخشی دربارهٔ پیاده‌سازی مشخص Shelter. برای اینکه مرز «آنچه از خود محصول استخراج شده» با «الگوهای رایج صنعت» و «پیشنهادهای طراحی» مخلوط نشود، از سه برچسب استفاده شده است:</p>
+<table>
+  <thead><tr><th style="width:24%">برچسب</th><th>معنا</th></tr></thead>
+  <tbody>
+    <tr><td><span class="tag fact">از محصول</span></td><td>مستقیماً از مستندات مخزن یا جدول‌های نصب‌کنندهٔ <code>Shelter-1.0.0.msi</code> استخراج و راستی‌آزمایی شده است.</td></tr>
+    <tr><td><span class="tag pattern">الگوی رایج</span></td><td>روشی که اپلیکیشن‌های کاهش پینگ و تونل‌های مبتنی بر Wintun/WFP معمولاً به کار می‌برند؛ جزئیات پیاده‌سازی داخلی Shelter ممکن است متفاوت باشد.</td></tr>
+    <tr><td><span class="tag rec">پیشنهاد</span></td><td>توصیهٔ طراحی، امنیتی یا عملیاتی برای نسخه‌های بعدی یا برای کاربران.</td></tr>
+  </tbody>
+</table>
+
+<div class="box warn"><span class="t">دربارهٔ آدرس‌ها و نسخه‌ها</span>
+<p>آدرس‌های DNS، دامنه‌های پشتیبانی‌شده و شرایط سرویس‌دهندگان ایرانی به‌طور مرتب تغییر می‌کند. مقادیر این سند در تاریخ نگارش از منابع عمومی گردآوری شده‌اند؛ پیش از استفاده در محیط عملیاتی، آن‌ها را با وب‌سایت رسمی هر سرویس تطبیق دهید.</p>
+</div>
+
+<!-- ======================= فهرست ======================= -->
+<section class="toc">
+  <h1 class="chapter front" id="toc">فهرست مطالب</h1>
+  <ol id="toc-list"></ol>
+</section>
+
+<!-- ======================= ۱. مقدمه ======================= -->
+<h1 class="chapter" id="ch-intro">مقدمه</h1>
+
+<p class="lead">کاربر ایرانی اینترنت برای کار و بازی با دو مانع متفاوت روبه‌روست. مانع اول <b>تحریم از سمت سرویس‌دهندگان خارجی</b> است: سرویسی مثل یک مخزن بستهٔ نرم‌افزاری، یک فروشگاه بازی یا ابزار توسعه، با دیدن IP ایرانی پاسخ «۴۰۳ — دسترسی ممنوع» می‌دهد. مانع دوم <b>کیفیت مسیر شبکه</b> است: حتی وقتی دسترسی برقرار است، پینگ بالا، جیتر و افت بسته تجربهٔ بازی آنلاین را خراب می‌کند.</p>
+
+<p>دو دسته ابزار برای این دو مشکل شکل گرفته‌اند: <b>DNSهای رفع تحریم</b> (مثل شکن، ۴۰۳، الکترو، بگذر و رادار گیم) که با پاسخ انتخابی DNS و یک پراکسی میانی، مانع اول را برای فهرستی از دامنه‌ها برطرف می‌کنند؛ و <b>اپلیکیشن‌های کاهش پینگ</b> (مثل Shelter) که با ساختن یک تونل سبک و عبور ترافیک بازی از مسیری بهتر، مانع دوم را هدف می‌گیرند. این سند هر دو را از پایه تا جزئیات پیاده‌سازی شرح می‌دهد.</p>
+
+<h2>هدف و دامنه</h2>
+<ul>
+  <li>توضیح دقیق سازوکار DNSهای رفع تحریم: چه چیزی را حل می‌کنند، چه چیزی را نه، و چرا.</li>
+  <li>راهنمای پیکربندی، راستی‌آزمایی و عیب‌یابی آن‌ها روی ویندوز، لینوکس، macOS، موبایل، روتر و کنسول.</li>
+  <li>توضیح مبانی تأخیر شبکه و دلیل بالا بودن پینگ بین‌المللی از ایران.</li>
+  <li>شرح اصول کار اپلیکیشن‌های کاهش پینگ: مسیریابی هم‌پوشان، تونل UDP، انتخاب ترافیک و انتخاب سرور.</li>
+  <li>معماری Shelter بر پایهٔ اجزای واقعی نصب‌کننده: رابط کاربری Flutter، موتور تونل، درایور Wintun، سرویس ویندوز و WFP.</li>
+  <li>نصب، ارتقا، حذف، امنیت، سنجش کیفیت اتصال و عیب‌یابی.</li>
+</ul>
+
+<h2>خلاصهٔ مدیریتی</h2>
+<div class="box info"><span class="t">ده نکتهٔ کلیدی</span>
+<ol>
+  <li>DNS رفع تحریم <b>VPN نیست</b>: ترافیک را رمز نمی‌کند، فیلترینگ داخلی را دور نمی‌زند و فقط برای دامنه‌های فهرست‌شده کار می‌کند.</li>
+  <li>سازوکار آن «DNS هوشمند + پراکسی SNI» است: برای دامنهٔ تحریمی، IP پراکسی خارجی برگردانده می‌شود و پراکسی اتصال TLS را بدون باز کردن رمزنگاری به مقصد واقعی می‌رساند.</li>
+  <li>رمزنگاری HTTPS حفظ می‌شود، اما سرویس‌دهندهٔ DNS نام همهٔ دامنه‌هایی را که باز می‌کنید می‌بیند؛ بنابراین فقط به سرویس معتبر اعتماد کنید و در صورت امکان از Split DNS استفاده کنید.</li>
+  <li>DoH داخلی مرورگر، ECH، IPv6 و کش DNS رایج‌ترین دلایل «کار نکردن» DNS رفع تحریم هستند.</li>
+  <li>DNS <b>پینگ بازی را کم نمی‌کند</b>؛ حداکثر روی انتخاب سرور/CDN و دسترسی لانچر اثر دارد.</li>
+  <li>پینگ از حد فیزیکی (حدود ۱ میلی‌ثانیه رفت‌وبرگشت به ازای هر ۱۰۰ کیلومتر فیبر) پایین‌تر نمی‌آید؛ اپ کاهش پینگ فقط فاصلهٔ «مسیر واقعی» تا «مسیر بهینه» را کم می‌کند.</li>
+  <li>اپ کاهش پینگ با رله‌های خوش‌مسیر، تونل UDP سبک و عبور انتخابی ترافیک بازی کار می‌کند؛ اگر مسیر مستقیم از قبل خوب باشد، تونل چیزی اضافه نمی‌کند.</li>
+  <li>Shelter یک کلاینت ویندوزی با رابط Flutter، موتور تونل (<code>ShelterEngine.dll</code> و <code>ShelterEngineHost.exe</code>)، درایور Wintun ۰٫۱۴٫۱ و یک سرویس ویندوز به نام <code>shelter</code> است.</li>
+  <li>نصب‌کنندهٔ فعلی امضای دیجیتال ندارد؛ پیش از نصب، هش SHA-256 را بررسی کنید.</li>
+  <li>برای بهترین نتیجه: لانچر و دانلود از طریق DNS رفع تحریم، ترافیک بازی از طریق تونل، و DNS بازی هم‌راستا با مسیر خروج تونل.</li>
+</ol>
+</div>
+
+<h2>نقشهٔ سند</h2>
+<table>
+  <thead><tr><th style="width:22%">فصل‌ها</th><th>موضوع</th><th style="width:30%">مناسب برای</th></tr></thead>
+  <tbody>
+    <tr><td>۲ و ۳</td><td>مبانی DNS، تحریم و ژئوبلاک</td><td>همه</td></tr>
+    <tr><td>۴ تا ۹</td><td>معماری، محدودیت‌ها، امنیت، سرویس‌ها، پیکربندی و عیب‌یابی DNS رفع تحریم</td><td>کاربران، پشتیبانی، مدیران شبکه</td></tr>
+    <tr><td>۱۰ تا ۱۲</td><td>مبانی تأخیر، مسیرهای بین‌المللی و اصول اپ‌های کاهش پینگ</td><td>همه، به‌ویژه گیمرها و مهندسان شبکه</td></tr>
+    <tr><td>۱۳ و ۱۴</td><td>معماری، نصب، ارتقا و حذف Shelter</td><td>پشتیبانی و توسعه‌دهندگان</td></tr>
+    <tr><td>۱۵ تا ۱۷</td><td>بهینه‌سازی، سنجش و عیب‌یابی اتصال بازی، امنیت</td><td>کاربران حرفه‌ای و پشتیبانی</td></tr>
+    <tr><td>۱۸ تا ۲۰ و پیوست‌ها</td><td>ملاحظات حقوقی، پرسش‌های متداول، واژه‌نامه، برگهٔ فرمان‌ها و منابع</td><td>همه</td></tr>
+  </tbody>
+</table>
+
+<!-- ======================= ۲. مبانی DNS ======================= -->
+<h1 class="chapter" id="ch-dns">مبانی DNS</h1>
+
+<h2>DNS چه کاری انجام می‌دهد</h2>
+<p>سامانهٔ نام دامنه (<span class="en">Domain Name System</span>) نام‌هایی مثل <code>example.com</code> را به نشانی IP تبدیل می‌کند. هر برنامه‌ای که به اینترنت وصل می‌شود — مرورگر، لانچر بازی، مدیر بستهٔ نرم‌افزاری — پیش از برقراری اتصال، از DNS می‌پرسد «این نام کجاست؟». نکتهٔ مهم برای این سند: <b>پاسخ DNS تعیین می‌کند اتصال بعدی به کدام سرور برقرار شود</b>. هر کس پاسخ DNS را کنترل کند، مقصد اتصال را کنترل می‌کند؛ این همان اهرمی است که DNSهای رفع تحریم از آن استفاده می‌کنند.</p>
+
+<h2>مسیر یک پرس‌وجو</h2>
+<figure>
+<svg viewBox="0 0 680 236" font-family="Vazirmatn" font-size="12">
+  <g stroke="#1d5c8f" stroke-width="1.4" fill="#eef4fa">
+    <rect x="525" y="86" width="145" height="64" rx="8"/>
+    <rect x="265" y="86" width="160" height="64" rx="8"/>
+  </g>
+  <g stroke="#7a68b0" stroke-width="1.2" fill="#f3f0fa">
+    <rect x="10" y="10" width="175" height="52" rx="8"/>
+    <rect x="10" y="92" width="175" height="52" rx="8"/>
+    <rect x="10" y="174" width="175" height="52" rx="8"/>
+  </g>
+  <g text-anchor="middle" fill="#18212c">
+    <text x="597" y="113" font-weight="700">دستگاه کاربر</text>
+    <text x="597" y="133" font-size="10.5" fill="#3d4a5a">Stub Resolver + کش</text>
+    <text x="345" y="113" font-weight="700">Resolver بازگشتی</text>
+    <text x="345" y="133" font-size="10.5" fill="#3d4a5a">اپراتور یا سرویس DNS</text>
+    <text x="97" y="33" font-weight="700">سرور ریشه</text>
+    <text x="97" y="51" font-size="10.5" fill="#3d4a5a">«.»</text>
+    <text x="97" y="115" font-weight="700">سرور TLD</text>
+    <text x="97" y="133" font-size="10.5" fill="#3d4a5a">.com</text>
+    <text x="97" y="197" font-weight="700">سرور معتبر</text>
+    <text x="97" y="215" font-size="10.5" fill="#3d4a5a">example.com</text>
+  </g>
+  <g stroke="#3d4a5a" stroke-width="1.4" fill="none">
+    <line x1="523" y1="104" x2="429" y2="104" marker-end="url(#arr)"/>
+    <line x1="427" y1="134" x2="521" y2="134" marker-end="url(#arr-a)" stroke="#0f8a7e"/>
+    <line x1="263" y1="98" x2="189" y2="44" marker-start="url(#arr)" marker-end="url(#arr)"/>
+    <line x1="263" y1="118" x2="189" y2="118" marker-start="url(#arr)" marker-end="url(#arr)"/>
+    <line x1="263" y1="138" x2="189" y2="192" marker-start="url(#arr)" marker-end="url(#arr)"/>
+  </g>
+  <g font-size="10.5" text-anchor="middle" fill="#18212c">
+    <text x="476" y="96">۱ · پرس‌وجو</text>
+    <text x="476" y="152" fill="#0f8a7e">۵ · پاسخ + TTL</text>
+    <text x="240" y="62">۲ · ارجاع</text>
+    <text x="226" y="111">۳ · ارجاع</text>
+    <text x="240" y="182">۴ · پاسخ نهایی</text>
+  </g>
+</svg>
+<figcaption>شکل ۱ — حل‌کردن نام به روش بازگشتی. پاسخ در هر مرحله برای مدت TTL در کش نگه داشته می‌شود.</figcaption>
+</figure>
+
+<ol class="steps">
+  <li>برنامه از کلاینت DNS سیستم‌عامل (<span class="en">Stub Resolver</span>) نام را می‌خواهد. اگر پاسخ در کش محلی باشد، همان‌جا برگردانده می‌شود.</li>
+  <li>در غیر این صورت، پرس‌وجو به <b>Resolver بازگشتی</b> تنظیم‌شده روی کارت شبکه فرستاده می‌شود؛ همان آدرسی که در تنظیمات DNS وارد می‌کنید (مثلاً DNS اپراتور یا DNS رفع تحریم).</li>
+  <li>Resolver بازگشتی از سرور ریشه، سپس سرور دامنهٔ سطح‌بالا (TLD) و در نهایت سرور معتبر دامنه پاسخ را می‌گیرد.</li>
+  <li>پاسخ همراه با TTL به کلاینت برمی‌گردد و در لایه‌های مختلف کش می‌شود.</li>
+</ol>
+
+<div class="box info"><span class="t">نکتهٔ کلیدی</span>
+<p>Resolver بازگشتی می‌تواند برای یک نام، <b>هر پاسخی</b> برگرداند. DNSهای رفع تحریم دقیقاً همین Resolver بازگشتی هستند که برای دامنه‌های خاص، به‌جای IP واقعی، IP پراکسی خودشان را برمی‌گردانند.</p>
+</div>
+
+<h2>رکوردها و TTL</h2>
+<table>
+  <thead><tr><th style="width:16%">رکورد</th><th>کاربرد</th><th style="width:36%">نکته در این سند</th></tr></thead>
+  <tbody>
+    <tr><td><code>A</code></td><td>نگاشت نام به IPv4</td><td>DNS رفع تحریم معمولاً این رکورد را بازنویسی می‌کند.</td></tr>
+    <tr><td><code>AAAA</code></td><td>نگاشت نام به IPv6</td><td>اگر IPv6 فعال باشد و این رکورد بازنویسی نشود، اتصال ممکن است مستقیم برود و با ۴۰۳ روبه‌رو شود.</td></tr>
+    <tr><td><code>CNAME</code></td><td>نام مستعار به نامی دیگر</td><td>بسیاری از سرویس‌ها پشت CDN با زنجیرهٔ CNAME هستند؛ همهٔ حلقه‌ها باید در فهرست سرویس باشند.</td></tr>
+    <tr><td><code>HTTPS</code> / <code>SVCB</code></td><td>اطلاعات اتصال (ALPN، کلید ECH و...)</td><td>می‌تواند مرورگر را به HTTP/3 یا ECH هدایت کند که با پراکسی SNI سازگار نیست.</td></tr>
+    <tr><td><code>NS</code> / <code>SOA</code></td><td>تفویض و اطلاعات منطقه</td><td>در پیکربندی کاربر نهایی کاربرد مستقیم ندارد.</td></tr>
+  </tbody>
+</table>
+<p><b>TTL</b> (طول عمر) مشخص می‌کند پاسخ چند ثانیه معتبر است. پس از تغییر DNS، پاسخ‌های قبلی تا پایان TTL در کش‌ها باقی می‌مانند؛ به همین دلیل پاک‌کردن کش بخش ثابت هر راهنمای پیکربندی است.</p>
+
+<h2>لایه‌های کش</h2>
+<table>
+  <thead><tr><th style="width:24%">لایه</th><th>نحوهٔ پاک‌کردن</th></tr></thead>
+  <tbody>
+    <tr><td>مرورگر</td><td>Chrome/Edge: <code>chrome://net-internals/#dns</code> ← Clear host cache؛ یا بستن کامل مرورگر</td></tr>
+    <tr><td>سیستم‌عامل ویندوز</td><td><code>ipconfig /flushdns</code> یا <code>Clear-DnsClientCache</code></td></tr>
+    <tr><td>macOS</td><td><code>sudo dscacheutil -flushcache; sudo killall -HUP mDNSResponder</code></td></tr>
+    <tr><td>لینوکس (systemd-resolved)</td><td><code>resolvectl flush-caches</code></td></tr>
+    <tr><td>برنامه‌های مبتنی بر JVM</td><td>JVM پاسخ‌ها را خودش کش می‌کند؛ پروسه را دوباره اجرا کنید (برای Gradle: <code>./gradlew --stop</code>)</td></tr>
+    <tr><td>روتر</td><td>راه‌اندازی دوبارهٔ سرویس DNS روتر یا خود روتر</td></tr>
+  </tbody>
+</table>
+
+<h2>پروتکل‌های انتقال DNS</h2>
+<table>
+  <thead><tr><th style="width:22%">پروتکل</th><th style="width:18%">پورت</th><th>ویژگی</th></tr></thead>
+  <tbody>
+    <tr><td>DNS کلاسیک (Do53)</td><td><code>UDP/TCP 53</code></td><td>متن آشکار؛ در مسیر قابل مشاهده و دست‌کاری. همهٔ DNSهای رفع تحریم آن را پشتیبانی می‌کنند.</td></tr>
+    <tr><td>DNS over TLS (DoT)</td><td><code>TCP 853</code></td><td>رمزنگاری‌شده؛ در اندروید با نام «Private DNS» پشتیبانی می‌شود و به نام میزبان (نه IP) نیاز دارد.</td></tr>
+    <tr><td>DNS over HTTPS (DoH)</td><td><code>TCP 443</code></td><td>رمزنگاری‌شده و هم‌شکل ترافیک وب؛ مرورگرها به‌طور پیش‌فرض ممکن است DoH خودشان را به کار ببرند و تنظیمات DNS سیستم را نادیده بگیرند.</td></tr>
+    <tr><td>DNS over QUIC (DoQ)</td><td><code>UDP 853</code></td><td>رمزنگاری‌شده با تأخیر کم؛ پشتیبانی محدود.</td></tr>
+  </tbody>
+</table>
+<p>استفاده از DoT/DoH با یک DNS رفع تحریم فقط زمانی ممکن است که خود سرویس‌دهنده نقطهٔ پایانی رمزنگاری‌شده ارائه کرده باشد. در غیر این صورت باید از DNS کلاسیک استفاده کرد و DoH مرورگر را غیرفعال کرد یا روی همان سرویس تنظیم کرد (بخش پیکربندی مرورگرها).</p>
+
+<!-- ======================= ۳. تحریم و ژئوبلاک ======================= -->
+<h1 class="chapter" id="ch-sanctions">تحریم، ژئوبلاک و تفاوت آن با فیلترینگ</h1>
+
+<h2>تحریم از سمت سرویس‌دهنده چگونه اعمال می‌شود</h2>
+<p>شرکت‌هایی که مشمول مقررات صادراتی و تحریمی کشورشان هستند، دسترسی کاربران کشورهای تحریم‌شده را محدود می‌کنند. ساده‌ترین و رایج‌ترین روش، <b>مکان‌یابی IP (GeoIP)</b> است: سرور مقصد یا CDN جلوی آن، IP مبدأ اتصال را با پایگاه‌دادهٔ موقعیت جغرافیایی تطبیق می‌دهد و اگر متعلق به ایران باشد، پاسخ خطا برمی‌گرداند. نشانه‌های رایج:</p>
+<ul>
+  <li>پاسخ HTTP با کد <code>403 Forbidden</code> یا صفحه‌ای با پیام «این سرویس در کشور شما در دسترس نیست».</li>
+  <li>خطای دانلود در مدیرهای بسته و ابزارهای ساخت (مثلاً شکست دانلود وابستگی‌ها یا SDK).</li>
+  <li>لانچر بازی که وارد نمی‌شود، به‌روزرسانی را دانلود نمی‌کند یا فروشگاه را نشان نمی‌دهد.</li>
+</ul>
+
+<h2>لایه‌های تشخیص کاربر ایرانی</h2>
+<p>GeoIP تنها لایه نیست. هر ابزار رفع تحریم فقط بخشی از این لایه‌ها را پوشش می‌دهد:</p>
+<table>
+  <thead><tr><th style="width:26%">لایهٔ تشخیص</th><th>شرح</th><th style="width:15%">DNS رفع تحریم</th><th style="width:15%">تونل/VPN</th></tr></thead>
+  <tbody>
+    <tr><td>IP مبدأ اتصال وب (TCP/TLS)</td><td>رایج‌ترین روش؛ در لبهٔ CDN یا سرور اعمال می‌شود</td><td>✓ برای دامنه‌های فهرست</td><td>✓</td></tr>
+    <tr><td>IP مبدأ ترافیک UDP</td><td>سرورهای بازی، تماس صوتی و تصویری</td><td>✗</td><td>✓</td></tr>
+    <tr><td>اطلاعات حساب کاربری</td><td>کشور ثبت‌شده، شماره تلفن، آدرس صورت‌حساب</td><td>✗</td><td>✗</td></tr>
+    <tr><td>روش پرداخت</td><td>کشور صادرکنندهٔ کارت</td><td>✗</td><td>✗</td></tr>
+    <tr><td>منطقهٔ فروشگاه/دستگاه</td><td>منطقهٔ حساب فروشگاه، زبان و منطقهٔ زمانی دستگاه</td><td>✗</td><td>✗</td></tr>
+  </tbody>
+</table>
+
+<h2>تفاوت تحریم با فیلترینگ داخلی</h2>
+<p>این دو اغلب با هم اشتباه گرفته می‌شوند، اما از دو طرف مخالف اتصال اعمال می‌شوند و ابزارهای متفاوتی دارند.</p>
+<table>
+  <thead><tr><th style="width:20%">ویژگی</th><th>تحریم (ژئوبلاک خارجی)</th><th>فیلترینگ داخلی</th></tr></thead>
+  <tbody>
+    <tr><td>محل اعمال</td><td>سرور یا CDN سرویس خارجی</td><td>زیرساخت شبکهٔ داخل کشور</td></tr>
+    <tr><td>معیار</td><td>IP مبدأ ایرانی و اطلاعات حساب</td><td>دامنه، SNI، IP مقصد و الگوی پروتکل</td></tr>
+    <tr><td>نشانهٔ رایج</td><td>خطای <code>403</code> یا پیام «در کشور شما در دسترس نیست»</td><td>عدم اتصال، قطع اتصال TLS یا هدایت به صفحهٔ دیگر</td></tr>
+    <tr><td>ابزار رایج</td><td>DNS رفع تحریم، پراکسی/تونل با خروجی خارجی</td><td>خارج از موضوع این سند</td></tr>
+  </tbody>
+</table>
+<div class="box warn"><span class="t">مرز کارکرد</span>
+<p>DNS رفع تحریم فقط مشکل اول را حل می‌کند. دامنه‌های فیلترشده در فهرست این سرویس‌ها قرار ندارند و اتصال کاربر تا پراکسی هم از زیرساخت داخلی عبور می‌کند؛ بنابراین این ابزار برای دسترسی به سایت‌های فیلترشده کاربرد ندارد.</p>
+</div>
+
+<!-- ======================= ۴. معماری DNS رفع تحریم ======================= -->
+<h1 class="chapter" id="ch-arch">معماری DNSهای رفع تحریم</h1>
+
+<h2>ایدهٔ اصلی: DNS هوشمند و پراکسی SNI</h2>
+<p>یک سرویس DNS رفع تحریم از دو جزء ساخته می‌شود که با هم کار می‌کنند:</p>
+<ul>
+  <li><b>DNS هوشمند (Smart DNS):</b> یک Resolver بازگشتی که فهرستی از دامنه‌های تحریمی دارد. برای نام‌های داخل فهرست، به‌جای IP واقعی، IP پراکسی خود سرویس را برمی‌گرداند و برای بقیهٔ نام‌ها مثل هر Resolver دیگری پاسخ واقعی می‌دهد.</li>
+  <li><b>پراکسی SNI (پراکسی شفاف لایهٔ ۴):</b> سروری با IP غیرایرانی که اتصال‌های ورودی روی پورت‌های ۴۴۳ و ۸۰ را می‌پذیرد، از روی نام سرور در ClientHello (برای HTTPS) یا سرآیند <code>Host</code> (برای HTTP) مقصد واقعی را تشخیص می‌دهد و اتصال را به آن وصل می‌کند.</li>
+</ul>
+<p>نتیجه این است که سرویس مقصد، اتصال را از IP پراکسی می‌بیند، نه از IP ایرانی کاربر؛ در حالی که کاربر هیچ نرم‌افزار اضافه‌ای نصب نکرده و فقط آدرس DNS را عوض کرده است.</p>
+
+<h2>جریان کامل یک اتصال</h2>
+<figure>
+<svg viewBox="0 0 680 300" font-family="Vazirmatn" font-size="12">
+  <g stroke-width="1.4">
+    <rect x="520" y="118" width="150" height="64" rx="8" fill="#eef4fa" stroke="#1d5c8f"/>
+    <rect x="255" y="12" width="190" height="66" rx="8" fill="#edf7f0" stroke="#2f8f55"/>
+    <rect x="255" y="222" width="190" height="66" rx="8" fill="#fdf5e6" stroke="#d08a12"/>
+    <rect x="10" y="118" width="150" height="64" rx="8" fill="#f3f0fa" stroke="#7a68b0"/>
+  </g>
+  <g text-anchor="middle" fill="#18212c">
+    <text x="595" y="145" font-weight="700">دستگاه کاربر</text>
+    <text x="595" y="165" font-size="10.5" fill="#3d4a5a">IP ایرانی</text>
+    <text x="350" y="39" font-weight="700">DNS رفع تحریم</text>
+    <text x="350" y="60" font-size="10.5" fill="#3d4a5a">پاسخ انتخابی بر اساس فهرست</text>
+    <text x="350" y="249" font-weight="700">پراکسی SNI</text>
+    <text x="350" y="270" font-size="10.5" fill="#3d4a5a">IP غیرایرانی · بدون رمزگشایی</text>
+    <text x="85" y="145" font-weight="700">سرویس مقصد</text>
+    <text x="85" y="165" font-size="10.5" fill="#3d4a5a">dl.example.com</text>
+  </g>
+  <g fill="none" stroke-width="1.5">
+    <line x1="548" y1="116" x2="449" y2="47" stroke="#3d4a5a" marker-end="url(#arr)"/>
+    <line x1="449" y1="67" x2="528" y2="121" stroke="#0f8a7e" marker-end="url(#arr-a)"/>
+    <line x1="528" y1="184" x2="449" y2="244" stroke="#1d5c8f" marker-end="url(#arr-b)"/>
+    <line x1="253" y1="244" x2="162" y2="184" stroke="#b4462f" marker-end="url(#arr-r)"/>
+    <line x1="510" y1="150" x2="170" y2="150" stroke="#9aa5b2" stroke-dasharray="5 5"/>
+  </g>
+  <g font-size="10.5" fill="#18212c">
+    <text x="540" y="66" text-anchor="middle">۱ · پرس‌وجوی نام</text>
+    <text x="436" y="106" text-anchor="middle" fill="#0f8a7e">۲ · پاسخ: آدرس پراکسی</text>
+    <text x="590" y="250" text-anchor="start" fill="#1d5c8f">۳ · ClientHello با SNI</text>
+    <text x="205" y="254" text-anchor="start" fill="#b4462f">۴ · اتصال TCP تازه</text>
+    <text x="340" y="143" text-anchor="middle" fill="#6b7787">مسیر مستقیم (بدون DNS رفع تحریم) ← پاسخ ۴۰۳</text>
+    <text x="85" y="202" text-anchor="middle" fill="#6b7787">IP مبدأ دیده‌شده = IP پراکسی</text>
+  </g>
+</svg>
+<figcaption>شکل ۲ — جریان اتصال از طریق DNS هوشمند و پراکسی SNI. محتوای TLS از ابتدا تا انتها بین کاربر و سرویس مقصد رمز می‌ماند.</figcaption>
+</figure>
+
+<ol class="steps">
+  <li>برنامه برای <code>dl.example.com</code> رکورد <code>A</code> می‌خواهد و پرس‌وجو به DNS رفع تحریم که روی کارت شبکه تنظیم شده است فرستاده می‌شود.</li>
+  <li>Resolver نام را با فهرست خود مقایسه می‌کند. اگر نام (یا یکی از دامنه‌های والد آن) در فهرست باشد، IP پراکسی را با TTL کوتاه برمی‌گرداند؛ در غیر این صورت پاسخ واقعی را.</li>
+  <li>برنامه به IP پراکسی روی پورت ۴۴۳ وصل می‌شود و دست‌دادن TLS را آغاز می‌کند. پیام <span class="en">ClientHello</span> افزونهٔ SNI را دارد که نام <code>dl.example.com</code> را به‌صورت متن آشکار حمل می‌کند.</li>
+  <li>پراکسی SNI را می‌خواند، مجاز بودن نام را بررسی می‌کند، IP واقعی مقصد را از یک DNS عمومی می‌گیرد و یک اتصال TCP تازه به آن باز می‌کند.</li>
+  <li>پراکسی همان ClientHello را بی‌تغییر به مقصد می‌فرستد و از آن پس فقط بایت‌ها را در دو جهت کپی می‌کند. دست‌دادن TLS مستقیماً بین برنامهٔ کاربر و سرور مقصد کامل می‌شود.</li>
+  <li>سرور مقصد اتصال را از IP پراکسی می‌بیند؛ چون این IP ایرانی نیست، محدودیت GeoIP اعمال نمی‌شود.</li>
+</ol>
+<p>برای HTTP بدون رمز (پورت ۸۰) سازوکار مشابه است، با این تفاوت که پراکسی نام مقصد را از سرآیند <code>Host</code> درخواست HTTP می‌خواند.</p>
+
+<h2>چرا رمزنگاری HTTPS حفظ می‌شود</h2>
+<p>پراکسی SNI در لایهٔ انتقال کار می‌کند و فقط اولین پیام دست‌دادن را «نگاه» می‌کند. کلید خصوصی گواهی سرویس مقصد را ندارد، پس نمی‌تواند خودش را جای مقصد جا بزند. برنامهٔ کاربر زنجیرهٔ گواهی را با نام <code>dl.example.com</code> و مراجع معتبر سیستم‌عامل بررسی می‌کند؛ اگر کسی در مسیر بخواهد ترافیک را باز کند، اعتبارسنجی گواهی شکست می‌خورد.</p>
+<div class="box warn"><span class="t">قاعدهٔ طلایی</span>
+<p>با DNS رفع تحریم هرگز نباید خطای گواهی ببینید. اگر مرورگر یا برنامه هشدار گواهی نشان داد، ادامه ندهید: یا مسیر قابل اعتماد نیست یا پیکربندی سرویس اشتباه است.</p>
+</div>
+
+<h2>فهرست دامنه‌ها و پاسخ انتخابی</h2>
+<p>کیفیت یک سرویس DNS رفع تحریم بیش از هر چیز به <b>کامل و به‌روز بودن فهرست دامنه‌ها</b> بستگی دارد. سرویس‌های بزرگ اغلب پشت چندین نام و CDN هستند: صفحهٔ اصلی روی یک دامنه، API روی دامنه‌ای دیگر و فایل‌ها روی CDN. اگر حتی یکی از این نام‌ها در فهرست نباشد، سرویس «نیمه‌کاره» کار می‌کند؛ مثلاً صفحه باز می‌شود اما دانلود با ۴۰۳ شکست می‌خورد. سرویس‌دهندگان معمولاً:</p>
+<ul>
+  <li>دامنه‌ها را به‌صورت پسوندی (همهٔ زیردامنه‌ها) در فهرست قرار می‌دهند؛</li>
+  <li>برای پاسخ‌های بازنویسی‌شده TTL کوتاه می‌گذارند تا جابه‌جایی پراکسی سریع اثر کند؛</li>
+  <li>رکوردهای <code>AAAA</code> را برای دامنه‌های فهرست خالی برمی‌گردانند یا به IPv6 پراکسی بازنویسی می‌کنند تا اتصال از مسیر IPv6 مستقیم نرود؛</li>
+  <li>برای درخواست دامنه‌های جدید، فرم یا کانال پشتیبانی دارند.</li>
+</ul>
+
+<h2>کنترل دسترسی به پراکسی</h2>
+<p>پراکسی SNI بدون محدودیت، به‌سرعت به یک «رلهٔ باز» تبدیل می‌شود و برای سوءاستفاده، دور زدن محدودیت‌ها یا حمله به کار می‌رود. به همین دلیل سرویس‌دهندگان دسترسی را از چند جهت محدود می‌کنند:</p>
+<table>
+  <thead><tr><th style="width:26%">روش</th><th>شرح</th></tr></thead>
+  <tbody>
+    <tr><td>فهرست مجاز نام‌ها</td><td>پراکسی فقط نام‌هایی را عبور می‌دهد که در فهرست سرویس هستند؛ بقیه رد می‌شوند.</td></tr>
+    <tr><td>محدودیت مبدأ</td><td>فقط اتصال از محدوده‌های IP اپراتورهای ایرانی پذیرفته می‌شود.</td></tr>
+    <tr><td>ثبت IP کاربر</td><td>در طرح‌های پولی برخی سرویس‌ها، IP کاربر ثبت می‌شود و برای IP پویا، لینک یا ابزار به‌روزرسانی در اختیار کاربر قرار می‌گیرد.</td></tr>
+    <tr><td>آدرس‌های داخلی</td><td>برخی سرویس‌ها (مانند ۴۰۳ و رادار گیم) از آدرس‌های محدودهٔ خصوصی <code>10.0.0.0/8</code> استفاده می‌کنند که فقط درون شبکهٔ اپراتورهای داخلی مسیریابی می‌شوند؛ این آدرس‌ها از خارج ایران یا از پشت VPN در دسترس نیستند.</td></tr>
+  </tbody>
+</table>
+
+<h2>پیاده‌سازی مرجع برای مهندسان شبکه</h2>
+<p>برای درک بهتر — یا راه‌اندازی یک سرویس داخلی سازمانی برای دامنه‌های مشخص — نمونهٔ حداقلی زیر سازوکار را با <span class="en">dnsmasq</span> و ماژول <span class="en">stream</span> در <span class="en">nginx</span> نشان می‌دهد. نشانی‌ها از محدوده‌های مستندسازی (<span class="en">RFC 5737</span>) هستند.</p>
+<p class="pre-title">DNS هوشمند — <code>/etc/dnsmasq.d/smartdns.conf</code></p>
+<pre><span class="c"># Answer the proxy IP for listed names (and all their subdomains)</span>
+<span class="k">address</span>=/example-sanctioned.com/<span class="s">203.0.113.10</span>
+<span class="k">address</span>=/cdn.example-sanctioned.net/<span class="s">203.0.113.10</span>
+<span class="c"># AAAA queries for these names get an empty answer, so clients stay on IPv4</span>
+<span class="c"># Everything else: normal recursive resolution upstream</span>
+<span class="k">no-resolv</span>
+<span class="k">server</span>=<span class="s">9.9.9.9</span>
+<span class="c"># Never act as an open resolver</span>
+<span class="k">listen-address</span>=<span class="s">198.51.100.53</span>
+<span class="k">bind-interfaces</span></pre>
+
+<p class="pre-title">پراکسی SNI — بخشی از <code>nginx.conf</code></p>
+<pre><span class="k">stream</span> {
+    <span class="k">resolver</span> 9.9.9.9 valid=300s ipv6=off;
+
+    <span class="c"># Only listed names are forwarded; anything else goes to a closed port.</span>
+    <span class="k">map</span> $ssl_preread_server_name $upstream {
+        <span class="s">~^(.+\.)?example-sanctioned\.com$</span>      $ssl_preread_server_name:443;
+        <span class="s">~^(.+\.)?cdn\.example-sanctioned\.net$</span> $ssl_preread_server_name:443;
+        default                                  127.0.0.1:1;
+    }
+
+    <span class="k">server</span> {
+        <span class="k">listen</span> 443;
+        <span class="k">ssl_preread</span> on;          <span class="c"># read SNI from ClientHello, no decryption</span>
+        <span class="k">proxy_pass</span> $upstream;
+        <span class="k">proxy_connect_timeout</span> 5s;
+        <span class="k">allow</span> 198.51.100.0/24;    <span class="c"># your clients only</span>
+        <span class="k">deny</span>  all;
+    }
+}</pre>
+<div class="box warn"><span class="t">هشدار عملیاتی</span>
+<p>این نمونه آموزشی است. یک Resolver یا پراکسی باز (بدون محدودیت مبدأ و فهرست نام) ظرف چند ساعت کشف و سوءاستفاده می‌شود. در محیط واقعی، ثبت رویداد، محدودیت نرخ، پایش و فهرست مجاز دقیق ضروری است.</p>
+</div>
+
+<!-- ======================= ۵. محدودیت‌ها ======================= -->
+<h1 class="chapter" id="ch-limits">محدودیت‌ها و رفتارهای مرزی</h1>
+<p class="lead">بیشتر گزارش‌های «DNS رفع تحریم کار نمی‌کند» به یکی از موارد زیر برمی‌گردد. شناختن آن‌ها زمان عیب‌یابی را به چند دقیقه می‌رساند.</p>
+
+<table>
+  <thead><tr><th style="width:20%">پدیده</th><th style="width:42%">چرا مشکل ایجاد می‌کند</th><th>راه‌حل</th></tr></thead>
+  <tbody>
+    <tr><td>DoH داخلی مرورگر</td><td>مرورگر پرس‌وجوها را مستقیم به DoH خودش (مثلاً یک سرویس عمومی) می‌فرستد و DNS سیستم نادیده گرفته می‌شود؛ در نتیجه IP واقعی برمی‌گردد.</td><td>Secure DNS مرورگر را خاموش کنید یا روی «ارائه‌دهندهٔ فعلی» بگذارید (بخش ۸).</td></tr>
+    <tr><td>ECH (رمزنگاری ClientHello)</td><td>اگر رکورد <code>HTTPS</code> دامنه پیکربندی ECH داشته باشد، SNI واقعی رمز می‌شود و پراکسی نمی‌تواند مقصد را تشخیص دهد.</td><td>سمت سرویس‌دهنده: حذف پیکربندی ECH از پاسخ برای دامنه‌های فهرست. سمت کاربر: اطمینان از اینکه همهٔ پرس‌وجوها (از جمله رکورد <code>HTTPS</code>) از همان DNS عبور می‌کنند.</td></tr>
+    <tr><td>HTTP/3 و QUIC</td><td>QUIC روی UDP/443 است و بیشتر پراکسی‌های SNI فقط TCP را پشتیبانی می‌کنند. مرورگر پس از تلاش ناموفق به TCP برمی‌گردد که می‌تواند تأخیر اولیه ایجاد کند.</td><td>معمولاً خودبه‌خود حل می‌شود؛ در صورت کندی مداوم، QUIC مرورگر را غیرفعال کنید.</td></tr>
+    <tr><td>IPv6</td><td>اگر کارت شبکه یک DNS IPv6 از اپراتور داشته باشد، ممکن است رکورد <code>AAAA</code> واقعی دریافت شود و اتصال مستقیم برود.</td><td>DNS IPv6 را هم تنظیم کنید یا آن را خالی بگذارید؛ یا از Split DNS (NRPT) استفاده کنید که مستقل از کارت شبکه است.</td></tr>
+    <tr><td>DNS یا IP ثابت در برنامه</td><td>برخی برنامه‌ها DNS اختصاصی دارند یا مستقیماً به IP وصل می‌شوند.</td><td>DNS رفع تحریم برای این برنامه‌ها اثری ندارد؛ به تونل نیاز است.</td></tr>
+    <tr><td>ترافیک غیر TLS و UDP</td><td>پراکسی SNI فقط HTTP و TLS روی TCP را می‌فهمد. ترافیک بازی، تماس صوتی و پروتکل‌های اختصاصی پشتیبانی نمی‌شوند.</td><td>برای این ترافیک از تونل (مانند Shelter) استفاده کنید.</td></tr>
+    <tr><td>زنجیرهٔ ناقص CNAME/CDN</td><td>یکی از نام‌های زنجیره در فهرست نیست.</td><td>نام شکست‌خورده را از ابزار توسعه‌دهندهٔ مرورگر پیدا کنید و به سرویس‌دهنده گزارش دهید.</td></tr>
+    <tr><td>کش</td><td>پاسخ‌های قدیمی تا پایان TTL باقی می‌مانند.</td><td>کش سیستم، مرورگر و برنامه را پاک کنید (بخش ۲).</td></tr>
+    <tr><td>VPN یا تونل فعال</td><td>پرس‌وجوها از مسیر تونل می‌روند؛ آدرس‌های <code>10.202.x.x</code> در آن مسیر در دسترس نیستند.</td><td>برای دامنه‌های فهرست، قاعدهٔ NRPT تعریف کنید یا DNS را خارج از تونل نگه دارید.</td></tr>
+    <tr><td>تحریم مبتنی بر حساب</td><td>کشور حساب، شماره تلفن یا روش پرداخت ایرانی تشخیص داده می‌شود.</td><td>با هیچ تنظیم شبکه‌ای حل نمی‌شود.</td></tr>
+  </tbody>
+</table>
+
+<!-- ======================= ۶. امنیت DNS ======================= -->
+<h1 class="chapter" id="ch-dns-sec">امنیت و حریم خصوصی DNS رفع تحریم</h1>
+
+<h2>سرویس‌دهنده چه می‌بیند</h2>
+<p>وقتی DNS سیستم را روی یک سرویس رفع تحریم تنظیم می‌کنید، آن سرویس <b>همهٔ</b> پرس‌وجوهای DNS شما را می‌بیند، نه فقط دامنه‌های تحریمی را.</p>
+<table>
+  <thead><tr><th style="width:42%">اطلاعات</th><th style="width:29%">DNS هوشمند</th><th>پراکسی SNI</th></tr></thead>
+  <tbody>
+    <tr><td>نام همهٔ دامنه‌هایی که باز می‌کنید</td><td>✓ همه</td><td>فقط دامنه‌های فهرست</td></tr>
+    <tr><td>IP عمومی شما و زمان اتصال‌ها</td><td>✓</td><td>✓ برای دامنه‌های فهرست</td></tr>
+    <tr><td>حجم ترافیک هر اتصال</td><td>✗</td><td>✓ برای دامنه‌های فهرست</td></tr>
+    <tr><td>محتوای HTTPS (صفحه‌ها، رمزها، توکن‌ها)</td><td>✗</td><td>✗ تا وقتی گواهی معتبر است</td></tr>
+    <tr><td>محتوای HTTP بدون رمز</td><td>✗</td><td>✓ — از HTTP بدون رمز پرهیز کنید</td></tr>
+  </tbody>
+</table>
+
+<h2>اصل حداقل اعتماد: Split DNS</h2>
+<p>راه کاهش مواجهه این است که فقط دامنه‌های مورد نیاز به DNS رفع تحریم فرستاده شوند و بقیهٔ پرس‌وجوها به Resolver معمول شما بروند. این روش «Split DNS» یا «ارسال شرطی» نام دارد و در ویندوز با NRPT، در لینوکس با dnsmasq، در macOS با <code>/etc/resolver</code> و در MikroTik با رکوردهای <code>FWD</code> پیاده می‌شود (فصل ۸). مزیت جانبی: اگر سرویس رفع تحریم از دسترس خارج شود، فقط همان دامنه‌ها تحت تأثیر قرار می‌گیرند، نه کل اینترنت.</p>
+
+<h2>DNSSEC</h2>
+<p>پاسخ بازنویسی‌شده از دید DNSSEC یک پاسخ جعلی است. بیشتر کلاینت‌های DNS سیستم‌عامل اعتبارسنجی DNSSEC انجام نمی‌دهند، پس مشکلی پیش نمی‌آید. اما اگر یک Resolver محلی با اعتبارسنجی (مثلاً Unbound) دارید، باید دامنه‌های فهرست را از اعتبارسنجی مستثنا کنید:</p>
+<pre><span class="c"># unbound.conf</span>
+<span class="k">server:</span>
+    <span class="k">domain-insecure:</span> <span class="s">"example-sanctioned.com"</span>
+<span class="k">forward-zone:</span>
+    <span class="k">name:</span> <span class="s">"example-sanctioned.com"</span>
+    <span class="k">forward-addr:</span> 178.22.122.100
+    <span class="k">forward-addr:</span> 185.51.200.2</pre>
+
+<h2>جعل پاسخ در مسیر</h2>
+<p>DNS کلاسیک روی UDP/53 رمز ندارد و در مسیر قابل دست‌کاری است. این ضعف با TLS جبران می‌شود: حتی اگر پاسخ DNS جعل شود، اتصال HTTPS بدون گواهی معتبر برقرار نمی‌شود. بنابراین:</p>
+<ul>
+  <li>برای کارهای حساس فقط به HTTPS با گواهی معتبر تکیه کنید؛</li>
+  <li>اگر سرویس‌دهنده DoT یا DoH ارائه می‌دهد، آن را ترجیح دهید؛</li>
+  <li>نرم‌افزار و بسته‌ها را فقط از منبع رسمی بگیرید و در صورت امکان هش یا امضای آن‌ها را بررسی کنید.</li>
+</ul>
+
+<!-- ======================= ۷. سرویس‌ها ======================= -->
+<h1 class="chapter" id="ch-providers">سرویس‌های رایج در ایران</h1>
+
+<p>جدول زیر سرویس‌های شناخته‌شدهٔ DNS رفع تحریم را با آدرس‌های اعلام‌شدهٔ عمومی فهرست می‌کند. همهٔ این سرویس‌ها نسخهٔ رایگان دارند و برخی طرح پولی با امکانات بیشتر ارائه می‌کنند.</p>
+<table>
+  <thead><tr><th style="width:15%">سرویس</th><th class="ltr" style="width:19%">DNS اصلی</th><th class="ltr" style="width:19%">DNS دوم</th><th>توضیح</th></tr></thead>
+  <tbody>
+    <tr><td>شکن</td><td class="ltr"><code>178.22.122.100</code></td><td class="ltr"><code>185.51.200.2</code></td><td>از قدیمی‌ترین سرویس‌ها؛ نسخهٔ رایگان و طرح پولی با ثبت IP کاربر.</td></tr>
+    <tr><td>۴۰۳</td><td class="ltr"><code>10.202.10.202</code></td><td class="ltr"><code>10.202.10.102</code></td><td>آدرس داخلی؛ فقط از شبکهٔ اپراتورهای ایران در دسترس است.</td></tr>
+    <tr><td>الکترو</td><td class="ltr"><code>78.157.42.100</code></td><td class="ltr"><code>78.157.42.101</code></td><td>تمرکز بر بازی و لانچرها.</td></tr>
+    <tr><td>بگذر</td><td class="ltr"><code>185.55.226.26</code></td><td class="ltr"><code>185.55.225.25</code></td><td>سرویس عمومی رفع تحریم.</td></tr>
+    <tr><td>رادار گیم</td><td class="ltr"><code>10.202.10.10</code></td><td class="ltr"><code>10.202.10.11</code></td><td>تمرکز بر بازی؛ آدرس داخلی.</td></tr>
+  </tbody>
+</table>
+<p class="caption">جدول ۱ — آدرس‌ها در مهر ۱۴۰۵ از منابع عمومی گردآوری شده‌اند و ممکن است تغییر کنند.</p>
+
+<h2>روش انتخاب سرویس</h2>
+<p>هیچ سرویسی برای همهٔ دامنه‌ها بهترین نیست. انتخاب را بر اساس دامنه‌هایی که واقعاً لازم دارید انجام دهید:</p>
+<ol class="steps">
+  <li>فهرست دامنه‌های مورد نیاز خود را تهیه کنید (مثلاً دامنهٔ لانچر، CDN دانلود، مخزن بسته‌ها).</li>
+  <li>برای هر دامنه و هر سرویس، پاسخ DNS را بگیرید و ببینید آیا IP بازنویسی شده است (فصل ۹).</li>
+  <li>زمان پاسخ‌گویی و پایداری سرویس‌ها را در ساعات اوج (عصر و شب) بسنجید.</li>
+  <li>دو سرویس را به‌عنوان اصلی و پشتیبان انتخاب کنید؛ ترجیحاً از دو ارائه‌دهندهٔ متفاوت.</li>
+</ol>
+
+<p class="pre-title">سنجش زمان پاسخ‌گویی سرویس‌ها — PowerShell</p>
+<pre><span class="k">$servers</span> = <span class="s">"178.22.122.100"</span>, <span class="s">"10.202.10.202"</span>, <span class="s">"78.157.42.100"</span>, <span class="s">"185.55.226.26"</span>, <span class="s">"10.202.10.10"</span>
+<span class="k">$name</span> = <span class="s">"example.com"</span>       <span class="c"># replace with a domain you actually need</span>
+<span class="k">foreach</span> ($s <span class="k">in</span> $servers) {
+    $ms = (<span class="k">Measure-Command</span> {
+        <span class="k">Resolve-DnsName</span> $name -Server $s -DnsOnly -QuickTimeout -ErrorAction SilentlyContinue | Out-Null
+    }).TotalMilliseconds
+    <span class="s">"{0,-16} {1,7:N0} ms"</span> -f $s, $ms
+}</pre>
+<p class="small">اجرای اول تحت تأثیر کش سرویس‌دهنده است؛ اسکریپت را چند بار و در ساعات مختلف اجرا کنید.</p>
+
+<!-- ======================= ۸. پیکربندی ======================= -->
+<h1 class="chapter" id="ch-config">پیکربندی گام‌به‌گام</h1>
+<p class="lead">در همهٔ مثال‌ها از آدرس‌های شکن استفاده شده است؛ آن‌ها را با سرویس انتخابی خود جایگزین کنید. پس از هر تغییر، کش DNS را پاک کنید.</p>
+
+<h2>ویندوز — از طریق تنظیمات</h2>
+<h4>Windows 11</h4>
+<ol class="steps">
+  <li><kbd>Settings</kbd> ← <kbd>Network &amp; internet</kbd> ← <kbd>Wi-Fi</kbd> یا <kbd>Ethernet</kbd> ← ویژگی‌های شبکهٔ فعلی.</li>
+  <li>کنار <kbd>DNS server assignment</kbd> روی <kbd>Edit</kbd> بزنید و حالت <kbd>Manual</kbd> را انتخاب کنید.</li>
+  <li><kbd>IPv4</kbd> را روشن کنید و در <kbd>Preferred DNS</kbd> و <kbd>Alternate DNS</kbd> آدرس‌ها را وارد کنید. گزینهٔ <kbd>DNS over HTTPS</kbd> را خاموش بگذارید، مگر اینکه سرویس‌دهنده DoH ارائه کرده باشد.</li>
+  <li>ذخیره کنید و در PowerShell فرمان <code>Clear-DnsClientCache</code> را اجرا کنید.</li>
+</ol>
+<h4>Windows 10</h4>
+<ol class="steps">
+  <li>کلید <kbd>Win</kbd>+<kbd>R</kbd> و اجرای <code>ncpa.cpl</code>.</li>
+  <li>روی کارت شبکهٔ فعال راست‌کلیک ← <kbd>Properties</kbd> ← <kbd>Internet Protocol Version 4 (TCP/IPv4)</kbd> ← <kbd>Properties</kbd>.</li>
+  <li>گزینهٔ <kbd>Use the following DNS server addresses</kbd> را انتخاب و آدرس‌ها را وارد کنید.</li>
+</ol>
+
+<h2>ویندوز — PowerShell و netsh</h2>
+<p class="pre-title">PowerShell (با دسترسی Administrator)</p>
+<pre><span class="c"># list active adapters</span>
+<span class="k">Get-NetAdapter</span> | Where-Object Status -eq Up | Format-Table Name, InterfaceDescription, ifIndex
+
+<span class="c"># set IPv4 DNS servers</span>
+<span class="k">Set-DnsClientServerAddress</span> -InterfaceAlias <span class="s">"Wi-Fi"</span> -ServerAddresses <span class="s">178.22.122.100</span>, <span class="s">185.51.200.2</span>
+
+<span class="c"># verify and flush cache</span>
+<span class="k">Get-DnsClientServerAddress</span> -InterfaceAlias <span class="s">"Wi-Fi"</span> -AddressFamily IPv4
+<span class="k">Clear-DnsClientCache</span>
+
+<span class="c"># revert to DNS provided by DHCP</span>
+<span class="k">Set-DnsClientServerAddress</span> -InterfaceAlias <span class="s">"Wi-Fi"</span> -ResetServerAddresses</pre>
+<p class="pre-title">netsh (Command Prompt با دسترسی Administrator)</p>
+<pre><span class="k">netsh</span> interface ipv4 set dnsservers name=<span class="s">"Wi-Fi"</span> source=static address=<span class="s">178.22.122.100</span> register=primary validate=no
+<span class="k">netsh</span> interface ipv4 add dnsservers name=<span class="s">"Wi-Fi"</span> address=<span class="s">185.51.200.2</span> index=2 validate=no
+<span class="k">ipconfig</span> /flushdns
+
+<span class="c">rem revert</span>
+<span class="k">netsh</span> interface ipv4 set dnsservers name=<span class="s">"Wi-Fi"</span> source=dhcp</pre>
+
+<h2>ویندوز — Split DNS با NRPT</h2>
+<p>جدول سیاست حل نام (<span class="en">Name Resolution Policy Table</span>) به ویندوز می‌گوید پرس‌وجوی فضاهای نام مشخص را به سرورهای مشخص بفرستد، <b>مستقل از اینکه کدام کارت شبکه فعال است</b>. این روش هم حریم خصوصی را بهتر حفظ می‌کند و هم در کنار تونل‌هایی مانند Shelter پایدار می‌ماند.</p>
+<pre><span class="c"># ".example.com" matches all subdomains; the bare name needs its own entry</span>
+<span class="k">Add-DnsClientNrptRule</span> -Namespace <span class="s">".example-sanctioned.com"</span>, <span class="s">"example-sanctioned.com"</span> `
+    -NameServers <span class="s">"178.22.122.100"</span>, <span class="s">"185.51.200.2"</span> -Comment <span class="s">"sanctions-bypass"</span>
+
+<span class="k">Get-DnsClientNrptRule</span> | Format-Table Namespace, NameServers, Comment
+<span class="k">Clear-DnsClientCache</span>
+
+<span class="c"># remove all rules created above</span>
+<span class="k">Get-DnsClientNrptRule</span> | Where-Object Comment -eq <span class="s">"sanctions-bypass"</span> |
+    ForEach-Object { <span class="k">Remove-DnsClientNrptRule</span> -Name $_.Name -Force }</pre>
+<div class="box info"><span class="t">محدودهٔ اثر NRPT</span>
+<p>NRPT روی همهٔ برنامه‌هایی اثر دارد که از کلاینت DNS ویندوز استفاده می‌کنند. مرورگری که DoH داخلی دارد یا برنامه‌ای که DNS اختصاصی دارد، از آن عبور نمی‌کند.</p>
+</div>
+
+<h2>لینوکس</h2>
+<p class="pre-title">systemd-resolved — تغییر موقت برای یک کارت شبکه</p>
+<pre><span class="k">resolvectl</span> status
+<span class="k">sudo resolvectl</span> dns wlan0 <span class="s">178.22.122.100 185.51.200.2</span>
+<span class="k">sudo resolvectl</span> flush-caches
+<span class="k">sudo resolvectl</span> revert wlan0          <span class="c"># undo</span></pre>
+<p class="pre-title">NetworkManager — تغییر دائمی</p>
+<pre><span class="k">nmcli</span> con mod <span class="s">"MyWiFi"</span> ipv4.dns <span class="s">"178.22.122.100 185.51.200.2"</span> ipv4.ignore-auto-dns yes
+<span class="k">nmcli</span> con up <span class="s">"MyWiFi"</span></pre>
+<p class="pre-title">dnsmasq — Split DNS (<code>/etc/dnsmasq.d/bypass.conf</code>)</p>
+<pre><span class="k">server</span>=/example-sanctioned.com/<span class="s">178.22.122.100</span>
+<span class="k">server</span>=/example-sanctioned.com/<span class="s">185.51.200.2</span></pre>
+
+<h2>macOS</h2>
+<pre><span class="k">networksetup</span> -listallnetworkservices
+<span class="k">sudo networksetup</span> -setdnsservers Wi-Fi <span class="s">178.22.122.100 185.51.200.2</span>
+<span class="k">networksetup</span> -getdnsservers Wi-Fi
+<span class="k">sudo dscacheutil</span> -flushcache; <span class="k">sudo killall</span> -HUP mDNSResponder
+<span class="k">sudo networksetup</span> -setdnsservers Wi-Fi empty       <span class="c"># revert</span>
+
+<span class="c"># Split DNS: one file per domain</span>
+<span class="k">sudo mkdir</span> -p /etc/resolver
+<span class="k">echo</span> <span class="s">"nameserver 178.22.122.100"</span> | <span class="k">sudo tee</span> /etc/resolver/example-sanctioned.com
+<span class="k">scutil</span> --dns | grep -A3 example-sanctioned        <span class="c"># dig ignores /etc/resolver</span></pre>
+
+<h2>اندروید و iOS</h2>
+<table>
+  <thead><tr><th style="width:18%">سکو</th><th>مسیر</th></tr></thead>
+  <tbody>
+    <tr><td>اندروید (Wi-Fi)</td><td>تنظیمات Wi-Fi ← نگه داشتن روی شبکه ← <kbd>Modify</kbd> ← <kbd>Advanced</kbd> ← <kbd>IP settings: Static</kbd> ← <kbd>DNS 1</kbd> و <kbd>DNS 2</kbd>. در این حالت IP، Gateway و طول پیشوند را هم باید وارد کنید.</td></tr>
+    <tr><td>اندروید (Private DNS)</td><td><kbd>Settings</kbd> ← <kbd>Network &amp; internet</kbd> ← <kbd>Private DNS</kbd>. این گزینه فقط نام میزبان DoT می‌پذیرد، نه IP؛ فقط اگر سرویس‌دهنده نام DoT اعلام کرده باشد کاربرد دارد. روی دادهٔ موبایل هم اثر دارد.</td></tr>
+    <tr><td>اندروید (دادهٔ موبایل)</td><td>تنظیم DNS کلاسیک ممکن نیست؛ از Private DNS یا برنامه‌های تغییر DNS (که یک VPN محلی می‌سازند) استفاده کنید.</td></tr>
+    <tr><td>iOS / iPadOS</td><td><kbd>Settings</kbd> ← <kbd>Wi-Fi</kbd> ← نماد ⓘ کنار شبکه ← <kbd>Configure DNS</kbd> ← <kbd>Manual</kbd>؛ آدرس‌های قبلی را حذف و آدرس‌های جدید را اضافه کنید. برای دادهٔ موبایل به پروفایل پیکربندی یا برنامه نیاز است.</td></tr>
+  </tbody>
+</table>
+
+<h2>روتر و MikroTik</h2>
+<p>تنظیم DNS روی روتر (در بخش DHCP یا WAN) همهٔ دستگاه‌های شبکه را پوشش می‌دهد؛ از جمله کنسول‌ها و تلویزیون‌های هوشمند. در RouterOS:</p>
+<pre><span class="c"># forward all queries to the bypass DNS and serve LAN clients</span>
+<span class="k">/ip dns set</span> servers=<span class="s">178.22.122.100,185.51.200.2</span> allow-remote-requests=yes
+<span class="k">/ip dhcp-server network set</span> [find] dns-server=<span class="s">192.168.88.1</span>
+<span class="k">/ip dns cache flush</span>
+
+<span class="c"># RouterOS 7: Split DNS, forward only listed domains</span>
+<span class="k">/ip dns static add</span> name=<span class="s">example-sanctioned.com</span> type=FWD forward-to=<span class="s">178.22.122.100</span> match-subdomain=yes
+
+<span class="c"># never expose the resolver to the WAN</span>
+<span class="k">/ip firewall filter add</span> chain=input in-interface-list=WAN protocol=udp dst-port=53 action=drop
+<span class="k">/ip firewall filter add</span> chain=input in-interface-list=WAN protocol=tcp dst-port=53 action=drop</pre>
+
+<h2>کنسول‌های بازی</h2>
+<table>
+  <thead><tr><th style="width:18%">کنسول</th><th>مسیر</th></tr></thead>
+  <tbody>
+    <tr><td>PlayStation 5</td><td><kbd>Settings</kbd> ← <kbd>Network</kbd> ← <kbd>Settings</kbd> ← <kbd>Set Up Internet Connection</kbd> ← انتخاب شبکه ← <kbd>Advanced Settings</kbd> ← <kbd>DNS Settings: Manual</kbd></td></tr>
+    <tr><td>Xbox Series / One</td><td><kbd>Settings</kbd> ← <kbd>General</kbd> ← <kbd>Network settings</kbd> ← <kbd>Advanced settings</kbd> ← <kbd>DNS settings</kbd> ← <kbd>Manual</kbd></td></tr>
+  </tbody>
+</table>
+
+<h2>مرورگرها</h2>
+<table>
+  <thead><tr><th style="width:18%">مرورگر</th><th>مسیر تنظیم Secure DNS</th></tr></thead>
+  <tbody>
+    <tr><td>Chrome</td><td><kbd>Settings</kbd> ← <kbd>Privacy and security</kbd> ← <kbd>Security</kbd> ← <kbd>Use secure DNS</kbd>: خاموش، یا «With your current service provider»</td></tr>
+    <tr><td>Edge</td><td><kbd>Settings</kbd> ← <kbd>Privacy, search, and services</kbd> ← <kbd>Security</kbd> ← <kbd>Use secure DNS</kbd>: خاموش، یا «Use current service provider»</td></tr>
+    <tr><td>Firefox</td><td><kbd>Settings</kbd> ← <kbd>Privacy &amp; Security</kbd> ← <kbd>DNS over HTTPS</kbd>: <kbd>Off</kbd></td></tr>
+  </tbody>
+</table>
+
+<h2>ابزارهای توسعه</h2>
+<ul>
+  <li><b>JVM و Gradle:</b> JVM پاسخ‌های DNS را درون پروسه کش می‌کند. پس از تغییر DNS، daemon را متوقف کنید: <code>./gradlew --stop</code>؛ Android Studio را هم دوباره باز کنید.</li>
+  <li><b>Docker:</b> دریافت ایمیج‌ها با DNS میزبان انجام می‌شود. برای DNS درون کانتینرها، کلید <code>"dns"</code> را در <code>/etc/docker/daemon.json</code> تنظیم و سرویس را راه‌اندازی مجدد کنید.</li>
+  <li><b>پراکسی محیطی:</b> اگر متغیرهای <code>HTTP_PROXY</code> یا <code>HTTPS_PROXY</code> تنظیم شده باشند، اتصال از مسیر پراکسی می‌رود و DNS محلی ممکن است بی‌اثر باشد.</li>
+</ul>
+
+<!-- ======================= ۹. عیب‌یابی DNS ======================= -->
+<h1 class="chapter" id="ch-dns-debug">راستی‌آزمایی و عیب‌یابی DNS</h1>
+
+<h2>کدام DNS در حال استفاده است</h2>
+<pre><span class="k">ipconfig</span> /all                                   <span class="c"># "DNS Servers" per adapter</span>
+<span class="k">Get-DnsClientServerAddress</span> -AddressFamily IPv4
+<span class="k">Get-DnsClientNrptPolicy</span>                         <span class="c"># effective NRPT rules</span>
+<span class="k">nslookup</span> example.com                           <span class="c"># first lines: "Default Server"</span></pre>
+
+<h2>آیا دامنه پوشش داده می‌شود</h2>
+<p>پاسخ DNS رفع تحریم را با پاسخ یک Resolver معمولی مقایسه کنید. اگر IP بازگشتی متفاوت و متعلق به سرویس‌دهنده باشد، دامنه در فهرست است؛ اگر یکسان باشد، پوشش داده نمی‌شود.</p>
+<pre><span class="k">Resolve-DnsName</span> dl.example-sanctioned.com -Server <span class="s">178.22.122.100</span> -DnsOnly
+<span class="k">Resolve-DnsName</span> dl.example-sanctioned.com -DnsOnly            <span class="c"># current resolver</span>
+<span class="k">nslookup</span> dl.example-sanctioned.com <span class="s">178.22.122.100</span>
+<span class="k">dig</span> @<span class="s">178.22.122.100</span> dl.example-sanctioned.com +short           <span class="c"># Linux / macOS</span></pre>
+
+<h2>آیا اتصال از پراکسی عبور می‌کند</h2>
+<pre><span class="c"># Windows 10+ ships curl.exe; prints HTTP status and the IP actually connected to</span>
+<span class="k">curl.exe</span> -sS -o NUL -w <span class="s">"%{http_code} %{remote_ip}\n"</span> https://dl.example-sanctioned.com/
+<span class="k">Test-NetConnection</span> dl.example-sanctioned.com -Port 443</pre>
+<p><code>remote_ip</code> باید همان IP پراکسی باشد و کد وضعیت نباید <code>403</code> باشد.</p>
+
+<h2>جدول علائم</h2>
+<table>
+  <thead><tr><th style="width:24%">علامت</th><th style="width:36%">علت محتمل</th><th>اقدام</th></tr></thead>
+  <tbody>
+    <tr><td>همچنان خطای ۴۰۳</td><td>دامنه در فهرست نیست؛ DoH مرورگر؛ IPv6؛ کش؛ تحریم مبتنی بر حساب</td><td>به ترتیب: مقایسهٔ پاسخ DNS، خاموش کردن Secure DNS، بررسی <code>AAAA</code>، پاک کردن کش‌ها</td></tr>
+    <tr><td>صفحه باز می‌شود، دانلود نه</td><td>زیردامنه یا CDN دانلود در فهرست نیست</td><td>در DevTools (زبانهٔ Network) نام شکست‌خورده را پیدا و با <code>Resolve-DnsName</code> بررسی کنید؛ به سرویس‌دهنده گزارش دهید</td></tr>
+    <tr><td>هیچ سایتی باز نمی‌شود</td><td>سرویس از دسترس خارج است؛ آدرس <code>10.202.x.x</code> پشت VPN یا خارج از ایران</td><td>تست با <code>Resolve-DnsName -Server</code>؛ تعویض به سرویس پشتیبان؛ استفاده از Split DNS</td></tr>
+    <tr><td>خطای گواهی</td><td>مسیر نامعتبر یا پیکربندی اشتباه</td><td>ادامه ندهید؛ DNS را به حالت پیش‌فرض برگردانید</td></tr>
+    <tr><td>در curl کار می‌کند، در مرورگر نه</td><td>DoH مرورگر، QUIC یا کش مرورگر</td><td>Secure DNS را خاموش و کش میزبان مرورگر را پاک کنید</td></tr>
+    <tr><td>روی Wi-Fi کار می‌کند، روی دادهٔ موبایل نه</td><td>DNS فقط برای Wi-Fi تنظیم شده است</td><td>Private DNS یا برنامهٔ تغییر DNS</td></tr>
+    <tr><td>با فعال شدن تونل/VPN از کار می‌افتد</td><td>آداپتور تونل DNS خودش را دارد و اولویت بالاتری گرفته است</td><td>قاعدهٔ NRPT برای دامنه‌های لازم تعریف کنید</td></tr>
+  </tbody>
+</table>
+
+<h2>چک‌لیست سریع</h2>
+<div class="box info"><span class="t">به این ترتیب بررسی کنید</span>
+<ol>
+  <li>DNS درست روی کارت شبکهٔ فعال تنظیم شده است (<code>ipconfig /all</code>).</li>
+  <li>پاسخ DNS برای دامنهٔ مورد نظر بازنویسی می‌شود (<code>Resolve-DnsName -Server</code>).</li>
+  <li>کش سیستم و مرورگر پاک شده است.</li>
+  <li>Secure DNS مرورگر خاموش یا روی ارائه‌دهندهٔ فعلی است.</li>
+  <li>DNS مربوط به IPv6 مسیر جایگزین ایجاد نمی‌کند.</li>
+  <li>VPN یا تونل دیگری مسیر DNS را تغییر نداده است.</li>
+</ol>
+</div>
+
+<!-- ======================= ۱۰. مبانی تأخیر ======================= -->
+<h1 class="chapter" id="ch-latency">مبانی تأخیر شبکه</h1>
+
+<h2>پینگ دقیقاً چیست</h2>
+<p>«پینگ» در زبان گیمرها همان <b>زمان رفت‌وبرگشت</b> (<span class="en">Round-Trip Time, RTT</span>) است: مدت زمانی که یک بسته از رایانهٔ شما به سرور می‌رسد و پاسخ آن برمی‌گردد، بر حسب میلی‌ثانیه. دو نوع اندازه‌گیری را باید از هم جدا کرد:</p>
+<ul>
+  <li><b>پینگ ICMP</b> (فرمان <code>ping</code>): پیام کنترلی سبک که برخی روترها و سرورها آن را با اولویت پایین پاسخ می‌دهند یا مسدود می‌کنند؛ عدد آن همیشه با تجربهٔ بازی برابر نیست.</li>
+  <li><b>پینگ درون بازی:</b> بازی خودش روی همان کانال UDP بازی زمان رفت‌وبرگشت را می‌سنجد؛ گاهی زمان پردازش سرور و فاصلهٔ تیک‌ها هم در آن لحاظ می‌شود. ملاک نهایی همین عدد است.</li>
+</ul>
+
+<h2>اجزای تأخیر</h2>
+<table>
+  <thead><tr><th style="width:20%">جزء</th><th>تعریف</th><th style="width:30%">مقدار نمونه</th></tr></thead>
+  <tbody>
+    <tr><td>انتشار (Propagation)</td><td>زمان حرکت سیگنال در فیبر؛ سرعت نور در فیبر حدود ۲۰۰٬۰۰۰ کیلومتر بر ثانیه است.</td><td>۵ میکروثانیه به ازای هر کیلومتر یک‌طرفه؛ ۱ میلی‌ثانیه RTT به ازای هر ۱۰۰ کیلومتر</td></tr>
+    <tr><td>ارسال (Serialization)</td><td>زمان قرار دادن بیت‌های بسته روی لینک: اندازهٔ بسته تقسیم بر نرخ لینک.</td><td>بستهٔ ۱۵۰۰ بایتی: ۱٫۲ ms روی ۱۰ Mbps و ۰٫۰۱۲ ms روی ۱ Gbps</td></tr>
+    <tr><td>صف (Queuing)</td><td>انتظار بسته در بافر روترها وقتی لینک شلوغ است؛ عامل اصلی نوسان تأخیر.</td><td>از صفر تا چند صد میلی‌ثانیه</td></tr>
+    <tr><td>پردازش (Processing)</td><td>زمان مسیریابی، NAT، فایروال، بازرسی ترافیک و رمزنگاری.</td><td>معمولاً میکروثانیه تا چند میلی‌ثانیه</td></tr>
+    <tr><td>دسترسی (آخرین مایل)</td><td>رقابت روی Wi-Fi، زمان‌بندی شبکهٔ موبایل، interleaving در DSL.</td><td>چند تا چند ده میلی‌ثانیه</td></tr>
+  </tbody>
+</table>
+<div class="box info"><span class="t">رابطهٔ کلی</span>
+<p class="center en">RTT ≈ 2 × (distance ÷ 200,000 km/s) + Σ serialization + Σ queuing + Σ processing</p>
+<p>جزء اول با فیزیک تعیین می‌شود و هیچ نرم‌افزاری آن را کم نمی‌کند. سه جزء دیگر به مسیر، ازدحام و تجهیزات بستگی دارند و هدف واقعی اپ‌های کاهش پینگ همین‌ها هستند — به‌همراه کوتاه‌کردن «طول واقعی مسیر» که معمولاً بسیار بیشتر از فاصلهٔ مستقیم است.</p>
+</div>
+
+<h2>حد فیزیکی پینگ از تهران</h2>
+<p>جدول زیر کمینهٔ نظری RTT را برای چند مقصد رایج سرورهای بازی نشان می‌دهد؛ با فرض فیبر کاملاً مستقیم و بدون هیچ تأخیر دیگری. مسیرهای واقعی فیبر به‌دلیل جغرافیا و نقاط تبادل ترافیک معمولاً به‌طور محسوس طولانی‌ترند، بنابراین پینگ واقعی همیشه بالاتر است.</p>
+<table>
+  <thead><tr><th>مقصد</th><th>فاصلهٔ مستقیم (کیلومتر)</th><th>کمینهٔ نظری RTT</th></tr></thead>
+  <tbody>
+    <tr><td>بحرین</td><td>≈ ۱٬۰۷۰</td><td>≈ ۱۱ ms</td></tr>
+    <tr><td>دبی</td><td>≈ ۱٬۲۲۰</td><td>≈ ۱۲ ms</td></tr>
+    <tr><td>استانبول</td><td>≈ ۲٬۰۴۰</td><td>≈ ۲۰ ms</td></tr>
+    <tr><td>استکهلم</td><td>≈ ۳٬۵۶۰</td><td>≈ ۳۶ ms</td></tr>
+    <tr><td>فرانکفورت</td><td>≈ ۳٬۷۷۰</td><td>≈ ۳۸ ms</td></tr>
+    <tr><td>آمستردام</td><td>≈ ۴٬۰۶۰</td><td>≈ ۴۱ ms</td></tr>
+  </tbody>
+</table>
+<p class="caption">جدول ۲ — فاصلهٔ دایرهٔ عظیمه از تهران و کمینهٔ نظری زمان رفت‌وبرگشت در فیبر.</p>
+
+<h2>جیتر و افت بسته</h2>
+<p>بازی‌های رقابتی معمولاً روی UDP کار می‌کنند و وضعیت بازی را با نرخ ثابت (<span class="en">tick rate</span>؛ مثلاً ۶۴ یا ۱۲۸ بار در ثانیه، یعنی هر ۱۵٫۶ یا ۷٫۸ میلی‌ثانیه) مبادله می‌کنند. کلاینت برای نرم کردن حرکت، کمی از داده‌ها را بافر و میان آن‌ها درون‌یابی می‌کند. در این مدل:</p>
+<ul>
+  <li><b>جیتر</b> (نوسان تأخیر بین بسته‌های پیاپی) باعث می‌شود بسته‌ها دیرتر از بافر درون‌یابی برسند؛ نتیجه پرش تصویر و «rubber-banding» است.</li>
+  <li><b>افت بسته</b> یعنی به‌روزرسانی‌های گم‌شده؛ ثبت‌نشدن شلیک، جابه‌جایی ناگهانی بازیکن‌ها یا قطع اتصال.</li>
+  <li>پینگ ثابت ۷۰ میلی‌ثانیه اغلب تجربهٔ بهتری از پینگ متوسط ۵۰ با نوسان ۲۰ تا ۱۵۰ میلی‌ثانیه دارد.</li>
+</ul>
+<table>
+  <thead><tr><th style="width:22%">شاخص</th><th>خوب</th><th>قابل قبول</th><th>مشکل‌ساز</th></tr></thead>
+  <tbody>
+    <tr><td>پینگ (رقابتی)</td><td>کمتر از ۴۰ ms</td><td>۴۰ تا ۸۰ ms</td><td>بیش از ۱۰۰ ms</td></tr>
+    <tr><td>پینگ (غیررقابتی)</td><td>کمتر از ۸۰ ms</td><td>۸۰ تا ۱۵۰ ms</td><td>بیش از ۱۵۰ ms</td></tr>
+    <tr><td>جیتر</td><td>کمتر از ۵ ms</td><td>۵ تا ۱۵ ms</td><td>بیش از ۱۵ ms</td></tr>
+    <tr><td>افت بسته</td><td>۰٪</td><td>کمتر از ۰٫۵٪</td><td>بیش از ۱٪</td></tr>
+  </tbody>
+</table>
+<p class="caption">جدول ۳ — بازه‌های تقریبی؛ حساسیت هر بازی متفاوت است.</p>
+
+<h2>Bufferbloat: تأخیر زیر بار</h2>
+<p>وقتی کسی در همان شبکه فایل بزرگی دانلود یا آپلود می‌کند، بافر مودم و روتر پر می‌شود و بسته‌های بازی پشت صف می‌مانند. پینگ ممکن است از ۴۰ به ۳۰۰ میلی‌ثانیه برسد، در حالی که مسیر اینترنت هیچ تغییری نکرده است. این پدیده «Bufferbloat» نام دارد و راه‌حل آن در خانهٔ شماست، نه در اپ کاهش پینگ:</p>
+<ul>
+  <li>سنجش: پینگ را هم‌زمان با یک تست سرعت اجرا کنید؛ افزایش شدید پینگ زیر بار نشانهٔ Bufferbloat است.</li>
+  <li>درمان: فعال کردن SQM با الگوریتم‌هایی مثل <span class="en">fq_codel</span> یا <span class="en">cake</span> روی روتر و محدود کردن پهنای باند به کمی کمتر از ظرفیت واقعی لینک؛ یا قواعد QoS که ترافیک بازی را در اولویت قرار می‌دهند.</li>
+</ul>
+
+<!-- ======================= ۱۱. مسیر بین‌الملل ======================= -->
+<h1 class="chapter" id="ch-routes">چرا مسیر بین‌الملل از ایران پرتأخیر است</h1>
+
+<h2>دروازه‌های محدود</h2>
+<p>ارتباط بین‌الملل اینترنت ایران به‌صورت متمرکز از طریق شرکت ارتباطات زیرساخت تأمین می‌شود و اپراتورها پهنای باند بین‌الملل را از آن تهیه می‌کنند. ترافیک خروجی از تعداد محدودی نقطهٔ خروج زمینی و دریایی عبور می‌کند و پس از آن به مسیرهایی سپرده می‌شود که ارائه‌دهندگان ترانزیت بالادستی تعیین کرده‌اند. پیامد عملی: کاربر کنترلی بر اینکه ترافیک به سمت یک سرور بازی از کدام خروجی و کدام کشورها عبور کند ندارد.</p>
+
+<h2>مسیریابی بر اساس سیاست، نه تأخیر</h2>
+<p>پروتکل BGP که مسیرهای بین شبکه‌ها را تعیین می‌کند، مسیر را بر اساس سیاست‌های تجاری و توافق‌های تبادل ترافیک انتخاب می‌کند، نه کمترین تأخیر. نتیجه پدیده‌هایی مثل این‌هاست:</p>
+<ul>
+  <li><b>مسیر رفت‌وبرگشتی طولانی (Tromboning):</b> ترافیک به مقصدی در همسایگی، از اروپا دور می‌زند و برمی‌گردد.</li>
+  <li><b>مسیر نامتقارن:</b> مسیر رفت و برگشت متفاوت‌اند؛ یکی ممکن است شلوغ یا طولانی باشد.</li>
+  <li><b>تغییرات ناگهانی:</b> با تغییر سیاست یک اپراتور یا قطعی یک لینک، مسیر و پینگ در طول روز عوض می‌شود.</li>
+</ul>
+
+<h2>ازدحام ساعات اوج</h2>
+<p>در ساعات عصر و شب، مصرف پهنای باند بین‌الملل به اوج می‌رسد. لینک‌های پرترافیک صف‌های طولانی‌تر دارند و نتیجه افزایش پینگ، جیتر و افت بسته است. این همان زمانی است که بیشتر کاربران بازی می‌کنند.</p>
+
+<h2>تجهیزات کنترل ترافیک</h2>
+<p>ترافیک بین‌الملل از سامانه‌های بازرسی و کنترل عبور می‌کند. این تجهیزات علاوه بر تأخیر پردازشی، ممکن است برخی پروتکل‌ها — به‌ویژه ترافیک UDP ناشناخته یا تونل‌های رمزشده — را کند، ناپایدار یا محدود کنند. اپ‌های کاهش پینگ باید با این شرایط سازگار شوند؛ مثلاً با تغییر پروتکل یا پورت، یا با استفاده از نقطهٔ ورودی داخلی.</p>
+
+<h2>آخرین مایل و نوع اتصال</h2>
+<table>
+  <thead><tr><th style="width:22%">نوع اتصال</th><th>اثر بر بازی</th></tr></thead>
+  <tbody>
+    <tr><td>کابل اترنت</td><td>کمترین تأخیر و نوسان؛ گزینهٔ توصیه‌شده.</td></tr>
+    <tr><td>Wi-Fi</td><td>رقابت با دستگاه‌های دیگر و تداخل رادیویی؛ جیتر و افت بسته. باند ۵ یا ۶ گیگاهرتز بهتر از ۲٫۴ است.</td></tr>
+    <tr><td>ADSL / VDSL</td><td>حالت interleaving برای تصحیح خطا می‌تواند تأخیر ثابت اضافه کند؛ از اپراتور درخواست حالت fast path کنید.</td></tr>
+    <tr><td>اینترنت همراه (4G/5G)</td><td>تأخیر متغیر بر اساس بار سلول؛ معمولاً جیتر بیشتر. NAT در سطح اپراتور (CGNAT) نوع NAT را برای بازی‌های همتا‌به‌همتا محدود می‌کند.</td></tr>
+  </tbody>
+</table>
+
+<h2>محل سرورهای بازی</h2>
+<p>نزدیک‌ترین مناطق سرور برای بازیکنان ایرانی معمولاً خاورمیانه (بحرین و امارات)، ترکیه و اروپای مرکزی و شمالی (فرانکفورت، آمستردام، استکهلم) است. برخی ناشران دسترسی IPهای ایرانی را در سرور بازی یا لانچر مسدود می‌کنند؛ در این حالت مشکل علاوه بر کیفیت مسیر، تحریم ترافیک UDP بازی هم هست که DNS رفع تحریم آن را حل نمی‌کند.</p>
+
+<!-- ======================= ۱۲. اصول اپ کاهش پینگ ======================= -->
+<h1 class="chapter" id="ch-reducer">اپلیکیشن کاهش پینگ چگونه کار می‌کند</h1>
+
+<h2>مسیریابی هم‌پوشان و نقض نامساوی مثلث</h2>
+<p>در هندسه، ضلع مستقیم مثلث همیشه از مجموع دو ضلع دیگر کوتاه‌تر است. در اینترنت این قاعده بارها نقض می‌شود: چون مسیر پیش‌فرض بر اساس سیاست انتخاب شده، گاهی رفتن از نقطهٔ میانی B سریع‌تر از مسیر مستقیم A به C است. پژوهش‌های کلاسیک مثل <span class="en">RON (Resilient Overlay Networks)</span> نشان داده‌اند که یک شبکهٔ هم‌پوشان از رله‌ها می‌تواند هم تأخیر و هم قطعی را کاهش دهد. اپ‌های کاهش پینگ پیاده‌سازی تجاری همین ایده‌اند.</p>
+<figure>
+<svg viewBox="0 0 680 236" font-family="Vazirmatn" font-size="12">
+  <line x1="590" y1="180" x2="90" y2="180" stroke="#b4462f" stroke-width="2" stroke-dasharray="7 6"/>
+  <line x1="590" y1="180" x2="340" y2="56" stroke="#0f8a7e" stroke-width="2.5"/>
+  <line x1="340" y1="56" x2="90" y2="180" stroke="#0f8a7e" stroke-width="2.5"/>
+  <circle cx="600" cy="180" r="14" fill="#1d5c8f"/>
+  <circle cx="340" cy="50" r="14" fill="#0f8a7e"/>
+  <circle cx="80" cy="180" r="14" fill="#7a68b0"/>
+  <g text-anchor="middle" fill="#18212c">
+    <text x="600" y="185" fill="#fff" font-weight="700">A</text>
+    <text x="340" y="55" fill="#fff" font-weight="700">B</text>
+    <text x="80" y="185" fill="#fff" font-weight="700">C</text>
+    <text x="600" y="214" font-weight="700">کاربر — تهران</text>
+    <text x="340" y="22" font-weight="700">رله — استانبول</text>
+    <text x="80" y="214" font-weight="700">سرور بازی — فرانکفورت</text>
+    <text x="340" y="172" fill="#b4462f">مسیر پیش‌فرض اپراتور: ۱۱۰ ms</text>
+    <text x="340" y="200" fill="#6b7787" font-size="10.5">(دور زدن از چند کشور، ازدحام ساعات اوج)</text>
+    <text x="492" y="104" fill="#0f8a7e" font-weight="700">۳۵ ms</text>
+    <text x="188" y="104" fill="#0f8a7e" font-weight="700">۳۰ ms</text>
+  </g>
+  <rect x="455" y="20" width="215" height="44" rx="6" fill="#edf7f0" stroke="#2f8f55"/>
+  <text x="562" y="38" text-anchor="middle" font-size="10.5" fill="#1b6b3a">مسیر از طریق رله</text>
+  <text x="562" y="56" text-anchor="middle" font-size="10.5" fill="#1b6b3a">۳۵ + ۳۰ + پردازش ≈ ۷۰ ms</text>
+</svg>
+<figcaption>شکل ۳ — نقض نامساوی مثلث در اینترنت. اعداد نمونه‌اند و فقط ایده را نشان می‌دهند.</figcaption>
+</figure>
+
+<h2>معماری مرجع</h2>
+<figure>
+<svg viewBox="0 0 680 262" font-family="Vazirmatn" font-size="11.5">
+  <rect x="468" y="8" width="204" height="246" rx="10" fill="#f4f6f9" stroke="#c9d0d9"/>
+  <text x="570" y="28" text-anchor="middle" font-weight="700" fill="#12395f">رایانهٔ کاربر</text>
+  <g stroke-width="1.3">
+    <rect x="490" y="40" width="160" height="34" rx="6" fill="#fff" stroke="#7a68b0"/>
+    <rect x="490" y="92" width="160" height="34" rx="6" fill="#fff" stroke="#1d5c8f"/>
+    <rect x="490" y="144" width="160" height="34" rx="6" fill="#fff" stroke="#0f8a7e"/>
+    <rect x="490" y="204" width="160" height="34" rx="6" fill="#fff" stroke="#3d4a5a"/>
+    <rect x="340" y="196" width="112" height="50" rx="8" fill="#edf7f0" stroke="#2f8f55"/>
+    <rect x="182" y="196" width="112" height="50" rx="8" fill="#edf7f0" stroke="#2f8f55"/>
+    <rect x="10" y="196" width="126" height="50" rx="8" fill="#f3f0fa" stroke="#7a68b0"/>
+    <rect x="182" y="52" width="270" height="44" rx="8" fill="#fff" stroke="#9aa5b2" stroke-dasharray="5 4"/>
+  </g>
+  <g text-anchor="middle" fill="#18212c">
+    <text x="570" y="62">بازی</text>
+    <text x="570" y="114">انتخاب ترافیک</text>
+    <text x="570" y="166">آداپتور مجازی + موتور تونل</text>
+    <text x="570" y="226">کارت شبکه</text>
+    <text x="396" y="217" font-weight="700">ورودی داخلی</text>
+    <text x="396" y="235" font-size="10" fill="#3d4a5a">دیتاسنتر داخل ایران</text>
+    <text x="238" y="217" font-weight="700">رلهٔ خروجی</text>
+    <text x="238" y="235" font-size="10" fill="#3d4a5a">نزدیک منطقهٔ سرور</text>
+    <text x="73" y="217" font-weight="700">سرور بازی</text>
+    <text x="73" y="235" font-size="10" fill="#3d4a5a">IP خروجی را می‌بیند</text>
+    <text x="317" y="79" fill="#3d4a5a">اینترنت — مسیر مستقیم برای سایر ترافیک</text>
+  </g>
+  <g fill="none" stroke-width="1.5">
+    <line x1="570" y1="74" x2="570" y2="90" stroke="#3d4a5a" marker-end="url(#arr)"/>
+    <line x1="570" y1="126" x2="570" y2="142" stroke="#0f8a7e" marker-end="url(#arr-a)"/>
+    <line x1="570" y1="178" x2="570" y2="202" stroke="#0f8a7e" marker-end="url(#arr-a)"/>
+    <path d="M650 109 H662 V221 H654" stroke="#9aa5b2" stroke-dasharray="4 4" marker-end="url(#arr)"/>
+    <line x1="488" y1="221" x2="456" y2="221" stroke="#0f8a7e" marker-end="url(#arr-a)"/>
+    <line x1="338" y1="221" x2="298" y2="221" stroke="#0f8a7e" marker-end="url(#arr-a)"/>
+    <line x1="180" y1="221" x2="140" y2="221" stroke="#7a68b0" marker-end="url(#arr)"/>
+    <path d="M500 204 C 480 150, 470 90, 456 78" stroke="#9aa5b2" stroke-dasharray="4 4" marker-end="url(#arr)"/>
+  </g>
+  <g font-size="10" text-anchor="middle" font-weight="700">
+    <circle cx="472" cy="208" r="8" fill="#0f8a7e"/><text x="472" y="212" fill="#fff">۱</text>
+    <circle cx="318" cy="208" r="8" fill="#0f8a7e"/><text x="318" y="212" fill="#fff">۲</text>
+    <circle cx="160" cy="208" r="8" fill="#7a68b0"/><text x="160" y="212" fill="#fff">۳</text>
+  </g>
+</svg>
+<figcaption>شکل ۴ — معماری مرجع اپ کاهش پینگ. ① تونل UDP رمزشده تا ورودی داخلی؛ ② مسیر بهینه و پایدار بین‌الملل؛ ③ ترافیک عادی بازی از IP رلهٔ خروجی. خط‌چین‌ها ترافیکی است که از تونل عبور نمی‌کند.</figcaption>
+</figure>
+<ul>
+  <li><b>ورودی داخلی:</b> سروری در یک دیتاسنتر داخلی با اتصال خوب به اپراتورهای خانگی. مسیر کاربر تا آن کوتاه و پایدار است و از آنجا به بعد ترافیک روی مسیر بین‌الملل انتخاب‌شده و پایدار سرویس‌دهنده می‌رود.</li>
+  <li><b>رلهٔ خروجی:</b> سروری نزدیک منطقهٔ سرور بازی. بسته‌ها را از تونل خارج می‌کند و با NAT به سرور بازی می‌فرستد. سرور بازی IP این رله را می‌بیند؛ بنابراین اگر بازی IPهای ایرانی را مسدود کرده باشد، این مشکل هم حل می‌شود.</li>
+  <li><b>سرور بازی:</b> بدون هیچ تغییری؛ از دید آن، بازیکن از IP رلهٔ خروجی وصل شده است.</li>
+</ul>
+
+<h2>انتخاب ترافیک</h2>
+<p>عبور همهٔ ترافیک سیستم از تونل هم پهنای باند سرور را هدر می‌دهد و هم دانلودها و سرویس‌های داخلی را کند می‌کند. به همین دلیل اپ‌های کاهش پینگ فقط ترافیک بازی را به تونل می‌فرستند (<span class="en">Split Tunneling</span>):</p>
+<table>
+  <thead><tr><th style="width:20%">روش</th><th>سازوکار</th><th style="width:22%">مزیت</th><th style="width:22%">عیب</th></tr></thead>
+  <tbody>
+    <tr><td>بر اساس مقصد</td><td>افزودن مسیر برای محدوده‌های IP سرورهای بازی به جدول مسیریابی، با آداپتور تونل به‌عنوان رابط خروجی</td><td>ساده و کم‌هزینه؛ در لایهٔ هسته</td><td>فهرست IPها باید نگهداری شود؛ IPهای مشترک CDN</td></tr>
+    <tr><td>بر اساس برنامه</td><td>شناسایی جریان‌ها بر اساس فایل اجرایی (شناسهٔ برنامه در WFP یا پروسهٔ مالک سوکت)</td><td>دقیق؛ مستقل از IP سرورها</td><td>پیچیده‌تر؛ نیازمند WFP یا درایور</td></tr>
+    <tr><td>کل ترافیک</td><td>مسیر پیش‌فرض از طریق آداپتور تونل</td><td>ساده‌ترین پیاده‌سازی</td><td>سربار زیاد؛ کندی ترافیک غیر بازی</td></tr>
+  </tbody>
+</table>
+<p>در هر سه روش یک استثنای حیاتی وجود دارد: <b>بسته‌های خود تونل</b> (که به ورودی داخلی می‌روند) نباید دوباره وارد تونل شوند؛ وگرنه حلقه ایجاد می‌شود. این کار با یک مسیر میزبان به IP سرور از طریق کارت شبکهٔ فیزیکی، یا با بستن سوکت موتور تونل به کارت فیزیکی انجام می‌شود.</p>
+
+<h2>پروتکل تونل</h2>
+<p>تونل بازی تقریباً همیشه روی <b>UDP</b> ساخته می‌شود. تونل TCP دو مشکل جدی دارد: «Head-of-line blocking» (یک بستهٔ گم‌شده تمام بسته‌های بعدی را تا ارسال مجدد نگه می‌دارد) و «TCP meltdown» (سازوکارهای ارسال مجدد دو لایهٔ TCP با هم تداخل می‌کنند). برای بازی، بستهٔ دیر بی‌فایده است؛ بهتر است گم شود تا اینکه جلوی بستهٔ تازه را بگیرد.</p>
+<figure>
+<svg viewBox="0 0 680 128" font-family="Vazirmatn" font-size="11">
+  <g stroke="#fff" stroke-width="2">
+    <rect x="602" y="44" width="68" height="40" fill="#1d5c8f"/>
+    <rect x="554" y="44" width="48" height="40" fill="#3f7fb5"/>
+    <rect x="436" y="44" width="118" height="40" fill="#7a68b0"/>
+    <rect x="368" y="44" width="68" height="40" fill="#6b7787"/>
+    <rect x="316" y="44" width="52" height="40" fill="#8a95a3"/>
+    <rect x="20" y="44" width="296" height="40" fill="#0f8a7e"/>
+  </g>
+  <g fill="#fff" text-anchor="middle" font-weight="600">
+    <text x="636" y="68">IP بیرونی</text>
+    <text x="578" y="68">UDP</text>
+    <text x="495" y="68">سرآیند تونل + تگ</text>
+    <text x="402" y="68">IP درونی</text>
+    <text x="342" y="68">UDP</text>
+    <text x="168" y="68">دادهٔ بازی (رمزشده درون تونل)</text>
+  </g>
+  <g fill="none" stroke="#3d4a5a" stroke-width="1.2">
+    <path d="M670 36 V28 H436 V36"/>
+    <path d="M436 36 V28 H20 V36"/>
+  </g>
+  <g text-anchor="middle" fill="#18212c" font-size="10.5">
+    <text x="553" y="20">سربار تونل</text>
+    <text x="228" y="20">بستهٔ اصلی بازی</text>
+    <text x="636" y="102">۲۰ بایت</text>
+    <text x="578" y="102">۸</text>
+    <text x="495" y="102">وابسته به پروتکل</text>
+    <text x="402" y="102">۲۰</text>
+    <text x="342" y="102">۸</text>
+  </g>
+</svg>
+<figcaption>شکل ۵ — کپسوله‌سازی یک بستهٔ بازی در تونل UDP (از راست به چپ به ترتیب ارسال). در WireGuard سربار کل روی IPv4 برابر ۶۰ بایت و روی IPv6 برابر ۸۰ بایت است؛ به همین دلیل MTU پیش‌فرض آن ۱۴۲۰ است.</figcaption>
+</figure>
+<ul>
+  <li><b>رمزنگاری:</b> الگوریتم‌های AEAD امروزی مثل ChaCha20-Poly1305 یا AES-GCM برای بسته‌های کوچک بازی فقط چند میکروثانیه هزینه دارند.</li>
+  <li><b>MTU:</b> چون سربار تونل به بسته اضافه می‌شود، MTU آداپتور تونل باید کوچک‌تر از MTU مسیر باشد تا بسته تکه‌تکه نشود. بسته‌های بازی کوچک‌اند، اما ترافیک دیگری که از تونل عبور می‌کند (مثلاً دانلود داخل بازی) به MTU حساس است.</li>
+  <li><b>Keepalive:</b> ارسال دوره‌ای بستهٔ کوچک برای زنده نگه داشتن نگاشت NAT در روتر خانگی و شبکهٔ اپراتور.</li>
+</ul>
+
+<h2>انتخاب سرور و سنجش پیوسته</h2>
+<p>اپ کاهش پینگ باید از میان چندین ورودی و رله، بهترین مسیر را برای هر بازی و منطقه انتخاب کند. الگوی رایج:</p>
+<ol class="steps">
+  <li>سنجش RTT، جیتر و افت بسته تا هر ورودی/رلهٔ نامزد با چند ده بستهٔ کوچک.</li>
+  <li>ترکیب نتایج در یک امتیاز؛ مثلاً <span class="en">score = RTT<sub>avg</sub> + α·jitter + β·loss%</span> که در آن α و β وزن نوسان و افت هستند.</li>
+  <li>انتخاب مسیر با کمترین امتیاز و ادامهٔ سنجش در پس‌زمینه.</li>
+  <li>تعویض مسیر فقط زمانی که مسیر جدید برای مدتی پایدار و به‌اندازهٔ کافی بهتر باشد (هیسترزیس)، تا مسیر مدام عوض نشود.</li>
+</ol>
+<div class="box warn"><span class="t">تعویض رله در میانهٔ مسابقه</span>
+<p>اگر رلهٔ خروجی عوض شود، سرور بازی بازیکن را از IP جدیدی می‌بیند و بسیاری از بازی‌ها اتصال را قطع می‌کنند. بنابراین تعویض مسیر در میانهٔ بازی فقط باید در بخش‌هایی انجام شود که IP خروجی را تغییر نمی‌دهند.</p>
+</div>
+
+<h2>مسیرهای چندگانه و تکرار بسته</h2>
+<p>ترافیک بازی کم‌حجم است (معمولاً چند ده تا چند صد کیلوبیت بر ثانیه). بنابراین می‌توان هر بسته را هم‌زمان از دو مسیر مستقل فرستاد و در مقصد، نسخهٔ تکراری را بر اساس شمارهٔ ترتیب دور ریخت. هزینه دو برابر شدن پهنای باند است و سود آن، کاهش چشمگیر افت بسته و جیتر؛ چون احتمال اینکه هر دو مسیر هم‌زمان بسته را گم کنند بسیار کم است. تصحیح خطای پیشرو (FEC) جایگزین کم‌هزینه‌تری با پوشش کمتر است.</p>
+
+<h2>آنچه از اپ کاهش پینگ برنمی‌آید</h2>
+<ul>
+  <li><b>پایین‌تر از حد فیزیکی:</b> هیچ تونلی پینگ تهران–فرانکفورت را به کمتر از حدود ۳۸ میلی‌ثانیه نمی‌رساند.</li>
+  <li><b>مشکلات شبکهٔ خانگی:</b> Wi-Fi ضعیف، Bufferbloat و دانلودهای هم‌زمان باید در خود شبکه حل شوند.</li>
+  <li><b>مشکلات سمت سرور:</b> بار زیاد سرور بازی یا tick rate پایین ربطی به مسیر ندارد.</li>
+  <li><b>مسیر از قبل بهینه:</b> اگر مسیر مستقیم اپراتور خوب باشد، تونل فقط چند میلی‌ثانیه سربار اضافه می‌کند. اپ خوب این را تشخیص می‌دهد و به کاربر می‌گوید.</li>
+</ul>
+
+<h2>مقایسهٔ سه ابزار</h2>
+<table>
+  <thead><tr><th style="width:20%">ویژگی</th><th>DNS رفع تحریم</th><th>VPN عمومی</th><th>اپ کاهش پینگ</th></tr></thead>
+  <tbody>
+    <tr><td>لایهٔ کار</td><td>DNS + پراکسی لایهٔ ۴</td><td>لایهٔ ۳، کل ترافیک</td><td>لایهٔ ۳، ترافیک انتخابی</td></tr>
+    <tr><td>ترافیک تحت پوشش</td><td>HTTP/TLS دامنه‌های فهرست</td><td>همه</td><td>ترافیک بازی</td></tr>
+    <tr><td>پشتیبانی از UDP</td><td>✗</td><td>✓</td><td>✓</td></tr>
+    <tr><td>رمزنگاری لایهٔ شبکه</td><td>✗ (فقط TLS خود برنامه)</td><td>✓</td><td>✓ معمولاً</td></tr>
+    <tr><td>اثر بر پینگ</td><td>بی‌اثر</td><td>اغلب افزایش</td><td>هدف اصلی: کاهش</td></tr>
+    <tr><td>رفع تحریم بازی</td><td>فقط لانچر و وب</td><td>✓</td><td>✓ از طریق IP رلهٔ خروجی</td></tr>
+    <tr><td>نیاز به نصب نرم‌افزار</td><td>✗</td><td>✓</td><td>✓</td></tr>
+    <tr><td>بهینه‌سازی مسیر</td><td>✗</td><td>✗ (هدف: حریم خصوصی)</td><td>✓</td></tr>
+  </tbody>
+</table>
+
+<!-- ======================= ۱۳. معماری Shelter ======================= -->
+<h1 class="chapter" id="ch-shelter">معماری Shelter</h1>
+
+<h2>نمای کلی</h2>
+<p><span class="en">Shelter</span> یک کلاینت ویندوزی برای کاهش پینگ و پایدارکردن ترافیک بازی است؛ نصب‌کنندهٔ آن خود را «<span class="en">network accelerator for games</span>» معرفی می‌کند. نسخهٔ ۱٫۰٫۰ فقط برای Windows x64 و Windows 10 به بعد منتشر شده است. اطلاعات این فصل از مستندات مخزن و جدول‌های پایگاه‌دادهٔ نصب‌کننده (<code>File</code>، <code>Component</code>، <code>Directory</code>، <code>CustomAction</code>، <code>Upgrade</code>، <code>LaunchCondition</code> و <code>InstallExecuteSequence</code>) استخراج شده است. هر جا رفتار داخلی موتور از این منابع قابل تشخیص نبوده، با برچسب <span class="tag pattern">الگوی رایج</span> مشخص شده است.</p>
+
+<table>
+  <thead><tr><th style="width:26%">لایه</th><th>فناوری</th><th style="width:16%">منبع</th></tr></thead>
+  <tbody>
+    <tr><td>رابط کاربری</td><td>Flutter برای ویندوز (موتور <code>flutter_windows.dll</code> و کد Dart کامپایل‌شده در <code>app.so</code>)، فونت Vazirmatn</td><td><span class="tag fact">از محصول</span></td></tr>
+    <tr><td>موتور تونل</td><td>کتابخانهٔ بومی <code>ShelterEngine.dll</code> و پروسهٔ میزبان <code>ShelterEngineHost.exe</code></td><td><span class="tag fact">از محصول</span></td></tr>
+    <tr><td>آداپتور مجازی</td><td>Wintun نسخهٔ ۰٫۱۴٫۱ (WireGuard LLC)</td><td><span class="tag fact">از محصول</span></td></tr>
+    <tr><td>مدیریت تونل</td><td>سرویس ویندوز با نام <code>shelter</code></td><td><span class="tag fact">از محصول</span></td></tr>
+    <tr><td>هدایت و کنترل ترافیک</td><td>قواعد Windows Filtering Platform</td><td><span class="tag fact">از محصول</span></td></tr>
+    <tr><td>نصب‌کننده</td><td>MSI ساخته‌شده با WiX Toolset 5.0.2، نصب سراسری (per-machine)</td><td><span class="tag fact">از محصول</span></td></tr>
+  </tbody>
+</table>
+
+<h2>اجزای نصب‌شده</h2>
+<p>همهٔ فایل‌ها در <code>C:\Program Files\Shelter</code> نصب می‌شوند؛ مجموع حجم پس از نصب حدود ۳۷ مگابایت است.</p>
+<table>
+  <thead><tr><th class="ltr" style="width:30%">فایل</th><th style="width:15%">حجم</th><th>نقش</th></tr></thead>
+  <tbody>
+    <tr><td class="ltr"><code>shelter.exe</code></td><td>۸۰ KB</td><td>فایل اجرایی برنامه (نسخهٔ فایل 1.0.0.1)؛ میزبان رابط کاربری Flutter و هدف میان‌برهای Start Menu و دسکتاپ.</td></tr>
+    <tr><td class="ltr"><code>flutter_windows.dll</code></td><td>۲۰٫۳ MB</td><td>موتور Flutter برای رندر و اجرای کد Dart.</td></tr>
+    <tr><td class="ltr"><code>data\app.so</code></td><td>۵٫۳ MB</td><td>منطق رابط کاربری، کامپایل‌شده به‌صورت AOT.</td></tr>
+    <tr><td class="ltr"><code>data\icudtl.dat</code></td><td>۸۴۲ KB</td><td>داده‌های ICU برای پردازش متن و زبان.</td></tr>
+    <tr><td class="ltr"><code>data\flutter_assets\…</code></td><td>—</td><td>فونت‌های Vazirmatn و Material Icons، تصاویر برند (<code>logo.png</code> و <code>emblem.png</code>)، شیدرها و فایل <code>NOTICES</code> (مجوز اجزای متن‌باز).</td></tr>
+    <tr><td class="ltr"><code>ShelterEngine.dll</code></td><td>۴٫۷ MB</td><td>موتور تونل: خواندن و نوشتن بسته‌ها روی Wintun، رمزنگاری، کپسوله‌سازی و ارتباط با سرورها.</td></tr>
+    <tr><td class="ltr"><code>ShelterEngineHost.exe</code></td><td>۱٫۶ MB</td><td>پروسهٔ میزبان موتور تونل. <span class="small">(برداشت از نام و ساختار: پروسه‌ای که سرویس <code>shelter</code> اجرا می‌کند.)</span></td></tr>
+    <tr><td class="ltr"><code>wintun.dll</code></td><td>۴۱۸ KB</td><td>کتابخانهٔ Wintun ۰٫۱۴٫۱ که درایور امضاشدهٔ آداپتور مجازی را در خود دارد.</td></tr>
+    <tr><td class="ltr"><code>*_plugin.dll</code></td><td>۹۶ تا ۱۲۷ KB</td><td>افزونه‌های Flutter: مدیریت پنجره (<code>window_manager</code>)، اطلاعات نمایشگر (<code>screen_retriever</code>)، باز کردن پیوند (<code>url_launcher</code>) و پنجرهٔ انتخاب فایل (<code>file_selector</code>).</td></tr>
+  </tbody>
+</table>
+<div class="box fact"><span class="t">از محصول — چیزی که نصب‌کننده نصب نمی‌کند</span>
+<p>جدول‌های <code>ServiceInstall</code> و <code>ServiceControl</code> در MSI وجود ندارند و تنها درایور موجود در بسته، درایور جاسازی‌شده در <code>wintun.dll</code> است. بنابراین سرویس <code>shelter</code>، آداپتور Wintun و قواعد WFP در <b>زمان اجرا</b> و توسط خود برنامه ساخته می‌شوند، نه هنگام نصب. به همین دلیل برنامه هنگام اجرا دسترسی Administrator می‌خواهد.</p>
+</div>
+
+<h2>نمودار اجزا و مرز دسترسی</h2>
+<figure>
+<svg viewBox="0 0 680 364" font-family="Vazirmatn" font-size="11.5">
+  <rect x="8" y="8" width="664" height="172" rx="10" fill="#f4f6f9" stroke="#c9d0d9"/>
+  <rect x="8" y="192" width="664" height="112" rx="10" fill="#fbf7ee" stroke="#e6d4ad"/>
+  <text x="600" y="28" text-anchor="middle" font-size="10.5" fill="#6b7787">حالت کاربر</text>
+  <text x="600" y="212" text-anchor="middle" font-size="10.5" fill="#6b7787">هستهٔ ویندوز</text>
+
+  <rect x="545" y="44" width="115" height="50" rx="7" fill="#fff" stroke="#7a68b0" stroke-width="1.3"/>
+  <rect x="398" y="44" width="135" height="50" rx="7" fill="#fff" stroke="#1d5c8f" stroke-width="1.3"/>
+  <rect x="20" y="36" width="352" height="134" rx="9" fill="#edf7f0" stroke="#2f8f55" stroke-width="1.3"/>
+  <rect x="30" y="92" width="100" height="56" rx="6" fill="#fff" stroke="#3d4a5a"/>
+  <rect x="146" y="92" width="118" height="56" rx="6" fill="#fff" stroke="#0f8a7e" stroke-width="1.4"/>
+  <rect x="280" y="92" width="82" height="56" rx="6" fill="#fff" stroke="#0f8a7e"/>
+
+  <rect x="520" y="228" width="140" height="60" rx="7" fill="#fff" stroke="#3d4a5a"/>
+  <rect x="375" y="228" width="120" height="60" rx="7" fill="#fff" stroke="#b4462f"/>
+  <rect x="205" y="228" width="145" height="60" rx="7" fill="#fff" stroke="#0f8a7e" stroke-width="1.4"/>
+  <rect x="22" y="228" width="155" height="60" rx="7" fill="#fff" stroke="#3d4a5a"/>
+  <rect x="22" y="320" width="155" height="36" rx="7" fill="#f3f0fa" stroke="#7a68b0"/>
+
+  <g text-anchor="middle" fill="#18212c">
+    <text x="602" y="66" font-weight="700">بازی</text>
+    <text x="602" y="84" font-size="10" fill="#3d4a5a">سوکت UDP</text>
+    <text x="465" y="66" font-weight="700">shelter.exe</text>
+    <text x="465" y="84" font-size="10" fill="#3d4a5a">رابط کاربری Flutter</text>
+    <text x="196" y="56" font-weight="700" fill="#1b6b3a">سرویس ویندوز «shelter»</text>
+    <text x="196" y="74" font-size="10" fill="#1b6b3a">ShelterEngineHost.exe</text>
+    <text x="80" y="116" font-weight="700" font-size="11">سوکت UDP</text>
+    <text x="80" y="134" font-size="9.5" fill="#3d4a5a">رو به کارت فیزیکی</text>
+    <text x="205" y="116" font-weight="700" font-size="10.5">ShelterEngine.dll</text>
+    <text x="205" y="134" font-size="9.5" fill="#3d4a5a">رمز و کپسوله‌سازی</text>
+    <text x="321" y="116" font-weight="700" font-size="10.5">wintun.dll</text>
+    <text x="321" y="134" font-size="9.5" fill="#3d4a5a">حلقه‌های بسته</text>
+    <text x="590" y="253" font-weight="700">پشتهٔ TCP/IP</text>
+    <text x="590" y="273" font-size="10" fill="#3d4a5a">جدول مسیریابی</text>
+    <text x="435" y="253" font-weight="700">WFP</text>
+    <text x="435" y="273" font-size="10" fill="#3d4a5a">فیلترهای اتصال</text>
+    <text x="277" y="253" font-weight="700">درایور Wintun</text>
+    <text x="277" y="273" font-size="10" fill="#3d4a5a">آداپتور مجازی لایهٔ ۳</text>
+    <text x="99" y="253" font-weight="700">کارت شبکهٔ فیزیکی</text>
+    <text x="99" y="273" font-size="10" fill="#3d4a5a">Ethernet / Wi-Fi</text>
+    <text x="99" y="343" font-weight="700">سرورهای Shelter</text>
+  </g>
+
+  <g fill="none" stroke-width="1.5">
+    <line x1="602" y1="96" x2="596" y2="224" stroke="#3d4a5a" marker-end="url(#arr)"/>
+    <line x1="518" y1="258" x2="499" y2="258" stroke="#3d4a5a" marker-end="url(#arr)"/>
+    <line x1="373" y1="258" x2="354" y2="258" stroke="#0f8a7e" marker-end="url(#arr-a)"/>
+    <line x1="300" y1="226" x2="315" y2="152" stroke="#0f8a7e" marker-end="url(#arr-a)"/>
+    <line x1="278" y1="120" x2="268" y2="120" stroke="#0f8a7e" marker-end="url(#arr-a)"/>
+    <line x1="144" y1="120" x2="134" y2="120" stroke="#0f8a7e" marker-end="url(#arr-a)"/>
+    <line x1="80" y1="150" x2="88" y2="224" stroke="#0f8a7e" marker-end="url(#arr-a)"/>
+    <line x1="99" y1="290" x2="99" y2="316" stroke="#7a68b0" marker-end="url(#arr)"/>
+    <line x1="396" y1="69" x2="376" y2="69" stroke="#1d5c8f" marker-start="url(#arr-b)" marker-end="url(#arr-b)"/>
+  </g>
+  <g font-size="10" text-anchor="middle" font-weight="700">
+    <circle cx="616" cy="160" r="8" fill="#3d4a5a"/><text x="616" y="164" fill="#fff">۱</text>
+    <circle cx="508" cy="244" r="8" fill="#3d4a5a"/><text x="508" y="248" fill="#fff">۲</text>
+    <circle cx="363" cy="244" r="8" fill="#0f8a7e"/><text x="363" y="248" fill="#fff">۳</text>
+    <circle cx="322" cy="190" r="8" fill="#0f8a7e"/><text x="322" y="194" fill="#fff">۴</text>
+    <circle cx="205" cy="162" r="8" fill="#0f8a7e"/><text x="205" y="166" fill="#fff">۵</text>
+    <circle cx="66" cy="190" r="8" fill="#0f8a7e"/><text x="66" y="194" fill="#fff">۶</text>
+    <circle cx="116" cy="304" r="8" fill="#7a68b0"/><text x="116" y="308" fill="#fff">۷</text>
+  </g>
+  <text x="386" y="60" text-anchor="middle" font-size="9.5" fill="#1d5c8f">IPC</text>
+</svg>
+<figcaption>شکل ۶ — اجزای Shelter و مسیر یک بستهٔ خروجی بازی. نام فایل‌ها و نقش‌ها از نصب‌کننده است؛ جزئیات مسیر داخلی موتور، الگوی رایج تونل‌های مبتنی بر Wintun است.</figcaption>
+</figure>
+
+<h2>جریان یک بسته</h2>
+<p><span class="tag pattern">الگوی رایج</span> شماره‌ها با شکل ۶ مطابقت دارند.</p>
+<ol class="steps">
+  <li>بازی یک بستهٔ UDP را به IP سرور بازی می‌فرستد؛ بازی هیچ اطلاعی از وجود تونل ندارد.</li>
+  <li>پشتهٔ TCP/IP بر اساس جدول مسیریابی و متریک کارت‌ها تصمیم می‌گیرد که بسته از آداپتور Wintun خارج شود. WFP اتصال را در لایه‌های ALE ارزیابی می‌کند و بر اساس قواعد، آن را مجاز یا مسدود می‌کند.</li>
+  <li>بسته به درایور Wintun تحویل داده می‌شود.</li>
+  <li>درایور بستهٔ کامل IP را در حلقهٔ حافظهٔ مشترک قرار می‌دهد و موتور را از طریق رویداد خواندن بیدار می‌کند؛ موتور آن را با <code>WintunReceivePacket</code> برمی‌دارد.</li>
+  <li><code>ShelterEngine.dll</code> مسیر مناسب را انتخاب می‌کند، بسته را رمز و کپسوله می‌کند.</li>
+  <li>بستهٔ کپسوله‌شده از طریق سوکت UDP موتور — که مسیرش به کارت فیزیکی ختم می‌شود — ارسال می‌شود.</li>
+  <li>بسته به ورودی یا رلهٔ Shelter می‌رسد، از تونل خارج می‌شود و به سرور بازی ارسال می‌شود.</li>
+</ol>
+<p>مسیر برگشت قرینه است: پاسخ سرور بازی به رله می‌رسد، از تونل به سوکت موتور برمی‌گردد، رمزگشایی می‌شود و موتور آن را با <code>WintunAllocateSendPacket</code> و <code>WintunSendPacket</code> به آداپتور می‌دهد. پشتهٔ TCP/IP بسته را مثل هر بستهٔ ورودی دیگری به سوکت بازی تحویل می‌دهد.</p>
+
+<h2>Wintun</h2>
+<p>Wintun یک آداپتور شبکهٔ مجازی لایهٔ ۳ (TUN) برای ویندوز است که پروژهٔ WireGuard آن را ساخته است. ویژگی‌های مهم آن برای این سند:</p>
+<ul>
+  <li><b>لایهٔ ۳:</b> بسته‌های کامل IP مبادله می‌شوند، بدون سرآیند اترنت؛ مناسب تونل‌های مسیریابی‌شده.</li>
+  <li><b>حلقه‌های حافظهٔ مشترک:</b> مبادلهٔ بسته میان هسته و برنامه از طریق دو حلقهٔ حافظهٔ مشترک انجام می‌شود که کپی و فراخوانی سیستمی را کم و تأخیر را بسیار پایین نگه می‌دارد. ظرفیت حلقه هنگام شروع نشست تعیین می‌شود (توانی از ۲ بین ۱۲۸ کیلوبایت و ۶۴ مگابایت).</li>
+  <li><b>درایور جاسازی‌شده:</b> <code>wintun.dll</code> درایور امضاشده را در خود دارد و هنگام اولین ساخت آداپتور، آن را نصب می‌کند؛ به نصب جداگانهٔ درایور نیازی نیست.</li>
+  <li><b>عمر آداپتور:</b> در نسخهٔ ۰٫۱۴، آداپتوری که با <code>WintunCreateAdapter</code> ساخته شده با <code>WintunCloseAdapter</code> یا پایان پروسهٔ سازنده حذف می‌شود؛ بنابراین معمولاً آداپتور یتیم باقی نمی‌ماند.</li>
+</ul>
+<table>
+  <thead><tr><th class="ltr" style="width:34%">تابع</th><th>کاربرد</th></tr></thead>
+  <tbody>
+    <tr><td class="ltr"><code>WintunCreateAdapter</code></td><td>ساخت آداپتور با نام، نوع تونل و GUID دلخواه</td></tr>
+    <tr><td class="ltr"><code>WintunGetAdapterLUID</code></td><td>گرفتن شناسهٔ LUID برای تنظیم IP، مسیر و DNS با توابع IP Helper</td></tr>
+    <tr><td class="ltr"><code>WintunStartSession</code></td><td>شروع نشست و ساخت حلقه‌ها با ظرفیت مشخص</td></tr>
+    <tr><td class="ltr"><code>WintunGetReadWaitEvent</code></td><td>رویدادی برای انتظار تا رسیدن بستهٔ تازه</td></tr>
+    <tr><td class="ltr"><code>WintunReceivePacket</code> / <code>WintunReleaseReceivePacket</code></td><td>خواندن بستهٔ خروجی سیستم و آزاد کردن آن</td></tr>
+    <tr><td class="ltr"><code>WintunAllocateSendPacket</code> / <code>WintunSendPacket</code></td><td>تزریق بستهٔ ورودی به سیستم</td></tr>
+    <tr><td class="ltr"><code>WintunEndSession</code> / <code>WintunCloseAdapter</code></td><td>پایان نشست و حذف آداپتور</td></tr>
+  </tbody>
+</table>
+
+<h2>Windows Filtering Platform</h2>
+<p>WFP چارچوب فیلترینگ ترافیک در هستهٔ ویندوز است که فایروال ویندوز هم روی آن ساخته شده است. اپ‌های تونل از آن برای اعمال قواعد دقیق روی اتصال‌ها استفاده می‌کنند.</p>
+<table>
+  <thead><tr><th style="width:22%">مفهوم</th><th>شرح</th></tr></thead>
+  <tbody>
+    <tr><td>لایه (Layer)</td><td>نقطه‌ای از پشتهٔ شبکه که فیلتر در آن ارزیابی می‌شود؛ مثلاً <code>FWPM_LAYER_ALE_AUTH_CONNECT_V4</code> برای مجوز اتصال‌های خروجی.</td></tr>
+    <tr><td>زیرلایه (Sublayer)</td><td>گروه‌بندی فیلترهای یک برنامه با وزن مشخص تا با فیلترهای فایروال و نرم‌افزارهای دیگر تداخل نکند.</td></tr>
+    <tr><td>فیلتر و شرط</td><td>قاعده‌ای با شرط‌هایی مثل برنامهٔ مبدأ (<code>ALE_APP_ID</code>)، پورت، IP مقصد یا رابط شبکه و عملی مثل Permit یا Block.</td></tr>
+    <tr><td>Callout</td><td>کد اختصاصی در هسته برای بازرسی یا تغییر ترافیک؛ نیازمند درایور جداگانه.</td></tr>
+    <tr><td>نشست پویا</td><td>نشستی که با پرچم <code>FWPM_SESSION_FLAG_DYNAMIC</code> باز شود؛ همهٔ فیلترهایش با بسته شدن نشست یا پایان پروسه خودبه‌خود حذف می‌شوند.</td></tr>
+  </tbody>
+</table>
+<p><span class="tag pattern">الگوی رایج</span> کاربردهای WFP در یک اپ کاهش پینگ:</p>
+<ul>
+  <li>مجاز کردن صریح اتصال‌های موتور تونل به سرورهای خود، تا فایروال‌ها و قواعد دیگر آن را مسدود نکنند؛</li>
+  <li>شناسایی ترافیک برنامه‌های بازی بر اساس مسیر فایل اجرایی؛</li>
+  <li>جلوگیری از نشت: مسدود کردن ترافیکی از برنامهٔ بازی که نباید خارج از تونل برود (از جمله DNS)؛</li>
+  <li>مسدود کردن IPv6 برای برنامه‌های تونل‌شده، اگر تونل فقط IPv4 را پوشش می‌دهد.</li>
+</ul>
+<p class="small">از آنجا که نصب‌کننده درایوری جز Wintun ندارد، محتمل است که Shelter از فیلترهای استاندارد WFP (بدون Callout اختصاصی هسته) استفاده کند.</p>
+
+<h2>DNS در کنار Shelter</h2>
+<p><span class="tag rec">پیشنهاد</span> برای ترکیب DNS رفع تحریم و تونل Shelter:</p>
+<table>
+  <thead><tr><th style="width:26%">نوع ترافیک</th><th style="width:26%">مسیر پیشنهادی</th><th>دلیل</th></tr></thead>
+  <tbody>
+    <tr><td>لانچر، فروشگاه و دانلود به‌روزرسانی</td><td>مستقیم + DNS رفع تحریم</td><td>حجم زیاد و حساس به پهنای باند، نه تأخیر؛ نباید پهنای باند تونل را مصرف کند.</td></tr>
+    <tr><td>ترافیک UDP بازی</td><td>تونل Shelter</td><td>نیاز به مسیر بهینه و IP غیرایرانی؛ DNS رفع تحریم از UDP پشتیبانی نمی‌کند.</td></tr>
+    <tr><td>DNS پروسهٔ بازی</td><td>هم‌راستا با خروجی تونل</td><td>سرویس‌هایی که سرور را بر اساس موقعیت Resolver انتخاب می‌کنند، باید موقعیت خروجی تونل را ببینند، نه موقعیت ایران.</td></tr>
+    <tr><td>دامنه‌های تحریمی وب</td><td>قاعدهٔ NRPT به DNS رفع تحریم</td><td>NRPT مستقل از آداپتور است و با فعال شدن آداپتور Wintun از کار نمی‌افتد.</td></tr>
+  </tbody>
+</table>
+<div class="box info"><span class="t">چرا هم‌راستایی DNS مهم است</span>
+<p>بسیاری از CDNها و برخی سرویس‌های انتخاب سرور، نزدیک‌ترین سرور را بر اساس IP Resolver یا زیرشبکهٔ کاربر (افزونهٔ EDNS Client Subnet) تعیین می‌کنند. اگر نام از داخل ایران حل شود اما ترافیک از رله‌ای در اروپا خارج شود، ممکن است سروری انتخاب شود که برای مسیر واقعی بهینه نیست. هم‌راستا کردن DNS پروسهٔ بازی با خروجی تونل این ناسازگاری را حذف می‌کند.</p>
+</div>
+
+<!-- ======================= ۱۴. نصب، ارتقا و حذف ======================= -->
+<h1 class="chapter" id="ch-install">نصب، ارتقا و حذف Shelter</h1>
+
+<h2>پیش‌نیازها</h2>
+<ul>
+  <li>Windows 10 یا جدیدتر، معماری x64.</li>
+  <li>حساب کاربری با دسترسی Administrator (برای نصب و برای اجرای تونل).</li>
+  <li>حدود ۴۰ مگابایت فضای خالی.</li>
+  <li>غیرفعال بودن VPNها و تونل‌های دیگر هنگام استفاده از Shelter، برای جلوگیری از تداخل مسیرها.</li>
+</ul>
+
+<h2>بررسی صحت فایل</h2>
+<p><span class="tag fact">از محصول</span> نصب‌کنندهٔ نسخهٔ ۱٫۰٫۰ هنوز امضای دیجیتال ندارد؛ پس تنها راه اطمینان از سالم و دست‌نخورده بودن آن، مقایسهٔ هش است.</p>
+<pre><span class="k">Get-FileHash</span> .\Shelter-1.0.0.msi -Algorithm SHA256
+<span class="c"># expected:</span>
+<span class="c"># a2a6487e71ba7b5b366b03440d482c46a62003abcb0e269e2d2701037ceadd83</span>
+
+(<span class="k">Get-Item</span> .\Shelter-1.0.0.msi).Length      <span class="c"># expected: 12783616</span>
+
+<span class="k">certutil</span> -hashfile Shelter-1.0.0.msi SHA256   <span class="c"># alternative in cmd.exe</span></pre>
+
+<h2>نصب</h2>
+<p>نصب معمولی با دوبار کلیک روی فایل <code>.msi</code> انجام می‌شود. برای نصب بی‌صدا یا خودکار:</p>
+<pre><span class="k">msiexec</span> /i Shelter-1.0.0.msi /qn /norestart
+
+<span class="c">rem with a verbose log for troubleshooting</span>
+<span class="k">msiexec</span> /i Shelter-1.0.0.msi /qn /norestart /l*v <span class="s">"%TEMP%\shelter-install.log"</span></pre>
+<p>نصب سراسری است (<code>ALLUSERS=1</code>) و برای همهٔ کاربران رایانه انجام می‌شود. در «Programs &amp; Features» دکمه‌های Modify و Repair غیرفعال‌اند (<code>ARPNOMODIFY</code> و <code>ARPNOREPAIR</code>) و فقط حذف ممکن است.</p>
+
+<h2>ارتقا</h2>
+<p><span class="tag fact">از محصول</span> نصب‌کننده از الگوی Major Upgrade استفاده می‌کند:</p>
+<table class="kv">
+  <tbody>
+    <tr><td>UpgradeCode</td><td class="ltr"><code>{E0221C30-4C83-4DE2-929F-FB4F1E29AEC9}</code> — ثابت در همهٔ نسخه‌ها</td></tr>
+    <tr><td>ProductCode نسخهٔ ۱٫۰٫۰</td><td class="ltr"><code>{C1233F58-F2F3-44F6-96BF-981111C60865}</code></td></tr>
+    <tr><td>نسخهٔ قدیمی‌تر یا هم‌نسخه</td><td>شناسایی و پیش از نصب فایل‌های جدید کامل حذف می‌شود (<code>RemoveExistingProducts</code> بلافاصله پس از <code>InstallInitialize</code>). نصب دوبارهٔ همان نسخه هم به‌صورت ارتقا انجام می‌شود.</td></tr>
+    <tr><td>نسخهٔ جدیدتر نصب‌شده</td><td>نصب متوقف می‌شود با پیام <span class="en">«A newer version of Shelter is already installed.»</span></td></tr>
+    <tr><td>نتیجه</td><td>همیشه فقط یک ردیف Shelter در Programs &amp; Features باقی می‌ماند.</td></tr>
+  </tbody>
+</table>
+<p>برای ارتقا کافی است نصب‌کنندهٔ نسخهٔ جدید را اجرا کنید؛ حذف دستی لازم نیست.</p>
+
+<h2>پاک‌سازی خودکار تونل در نصب و حذف</h2>
+<p><span class="tag fact">از محصول</span> اکشن سفارشی <code>RemoveTunnelLeftovers</code> در هر بار نصب، ارتقا یا حذف اجرا می‌شود:</p>
+<pre><span class="s">"[System64Folder]cmd.exe"</span> /c <span class="k">taskkill</span> /F /IM shelter.exe &amp; <span class="k">sc</span> stop shelter &amp; <span class="k">sc</span> delete shelter</pre>
+<table class="kv">
+  <tbody>
+    <tr><td>نوع (3170)</td><td>اجرای فایل با پوشهٔ کاری (34) + ادامه با وجود خطا (64) + اجرای مؤخر در اسکریپت نصب (1024) + بدون جعل هویت، یعنی با حساب LocalSystem (2048)</td></tr>
+    <tr><td>زمان اجرا</td><td>شمارهٔ ترتیب 1502؛ بلافاصله پس از <code>InstallInitialize</code> و <code>RemoveExistingProducts</code>، بدون شرط</td></tr>
+    <tr><td>اثر</td><td>بستن رابط کاربری در حال اجرا، توقف و حذف سرویس <code>shelter</code>؛ تا فایل‌ها قفل نباشند و سرویس یتیم باقی نماند</td></tr>
+  </tbody>
+</table>
+
+<h2>حذف</h2>
+<pre><span class="k">msiexec</span> /x Shelter-1.0.0.msi /qn /norestart
+<span class="c">rem or by product code (1.0.0 only)</span>
+<span class="k">msiexec</span> /x {C1233F58-F2F3-44F6-96BF-981111C60865} /qn /norestart</pre>
+<p>ProductCode در هر نسخهٔ جدید (Major Upgrade) تغییر می‌کند. اسکریپت‌هایی که باید با هر نسخه کار کنند، کد محصول نصب‌شده را از رجیستری بخوانند:</p>
+<pre><span class="k">$app</span> = <span class="k">Get-ChildItem</span> HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall |
+    <span class="k">Get-ItemProperty</span> | Where-Object DisplayName -eq <span class="s">"Shelter"</span>
+<span class="k">$app</span> | Select-Object DisplayName, DisplayVersion, PSChildName
+<span class="k">Start-Process</span> msiexec.exe -ArgumentList <span class="s">"/x $($app.PSChildName) /qn /norestart"</span> -Wait</pre>
+
+<h2>ردپای نصب روی سیستم</h2>
+<table>
+  <thead><tr><th style="width:38%">مورد</th><th>توضیح</th><th style="width:16%">ایجاد در</th></tr></thead>
+  <tbody>
+    <tr><td class="ltr"><code>C:\Program Files\Shelter\</code></td><td>برنامه، موتور، Wintun و پوشهٔ <code>data</code></td><td>نصب</td></tr>
+    <tr><td>Start Menu ← Shelter ← Shelter</td><td>میان‌بر به <code>shelter.exe</code></td><td>نصب</td></tr>
+    <tr><td>Desktop ← Shelter</td><td>میان‌بر به <code>shelter.exe</code></td><td>نصب</td></tr>
+    <tr><td class="ltr"><code>HKLM\Software\Shelter</code></td><td>مقادیر <code>StartMenu</code> و <code>Desktop</code> (کلید مسیر کامپوننت میان‌برها)</td><td>نصب</td></tr>
+    <tr><td>سرویس <code>shelter</code></td><td>مدیریت تونل</td><td>اجرا</td></tr>
+    <tr><td>آداپتور Wintun</td><td>آداپتور مجازی تونل</td><td>اجرا</td></tr>
+    <tr><td>قواعد WFP</td><td>هدایت و کنترل ترافیک</td><td>اجرا</td></tr>
+  </tbody>
+</table>
+
+<h2>SmartScreen و امضای دیجیتال</h2>
+<p>چون نصب‌کننده امضا ندارد، ویندوز پیام «Windows protected your PC» نشان می‌دهد. پس از بررسی هش، با <kbd>More info</kbd> ← <kbd>Run anyway</kbd> می‌توان ادامه داد. فایل را فقط از صفحهٔ Releases رسمی مخزن دریافت کنید.</p>
+<p><span class="tag rec">پیشنهاد</span> برای نسخه‌های بعدی، همهٔ فایل‌های اجرایی (<code>shelter.exe</code>، <code>ShelterEngine.dll</code>، <code>ShelterEngineHost.exe</code>، افزونه‌ها) و خود MSI با Authenticode و مهر زمانی RFC 3161 امضا شوند:</p>
+<pre><span class="k">signtool</span> sign /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 /sha1 &lt;THUMBPRINT&gt; Shelter-1.0.1.msi
+<span class="k">signtool</span> verify /pa /v Shelter-1.0.1.msi</pre>
+<p>امضا هشدار SmartScreen را فوراً حذف نمی‌کند، اما اعتبار ناشر را به‌تدریج می‌سازد، دست‌کاری فایل را آشکار می‌کند و برای انتشار در Microsoft Store از طریق Partner Center لازم است؛ پیش از ثبت، الزامات به‌روز Partner Center را بررسی کنید.</p>
+
+<h2>یادداشت فنی: شرط نسخهٔ ویندوز</h2>
+<p><span class="tag fact">از محصول</span> شرط راه‌اندازی نصب‌کننده <code>Installed OR (VersionNT &gt;= 603)</code> است. Windows Installer برای سازگاری، روی Windows 10 و 11 هم مقدار <code>VersionNT</code> را ۶۰۳ گزارش می‌کند؛ پس این شرط Windows 8.1 را هم می‌پذیرد، در حالی که پیام آن «Windows 10 یا جدیدتر» است.</p>
+<p><span class="tag rec">پیشنهاد</span> اگر پشتیبانی فقط از Windows 10 به بعد مدنظر است، نسخهٔ اصلی را از رجیستری بخوانید (WiX 5):</p>
+<pre>&lt;<span class="k">Property</span> Id=<span class="s">"WINMAJOR"</span>&gt;
+  &lt;<span class="k">RegistrySearch</span> Root=<span class="s">"HKLM"</span> Key=<span class="s">"SOFTWARE\Microsoft\Windows NT\CurrentVersion"</span>
+                  Name=<span class="s">"CurrentMajorVersionNumber"</span> Type=<span class="s">"raw"</span> Bitness=<span class="s">"always64"</span> /&gt;
+&lt;/<span class="k">Property</span>&gt;
+&lt;<span class="k">Launch</span> Condition=<span class="s">"Installed OR WINMAJOR = &amp;quot;#10&amp;quot;"</span>
+        Message=<span class="s">"Shelter needs Windows 10 or newer."</span> /&gt;</pre>
+
+<h2>فرایند انتشار</h2>
+<p><span class="tag fact">از محصول</span> طبق <code>RELEASE.md</code>:</p>
+<ol class="steps">
+  <li>ساخت تگ <code>v1.0.0</code> روی شاخهٔ <code>main</code> و انتشار Release با عنوان <span class="en">Shelter 1.0.0</span>.</li>
+  <li>پیوست کردن <code>Shelter-1.0.0.msi</code> و <code>SHA256SUMS.txt</code> و استفاده از <code>RELEASE_NOTES.md</code> به‌عنوان یادداشت انتشار.</li>
+  <li>نشانی مستقیم دانلود: <code>https://github.com/iceberg-rog/Shelter-App/releases/download/v1.0.0/Shelter-1.0.0.msi</code>؛ اندازهٔ آن باید ۱۲٬۷۸۳٬۶۱۶ بایت باشد.</li>
+  <li>نصب‌کننده داخل مخزن هم نگه داشته می‌شود تا نشانی مستقیم و بدون ریدایرکت <span class="en">raw.githubusercontent.com</span> برای ثبت در Microsoft Partner Center در دسترس باشد.</li>
+  <li>فایل پشت یک نشانی منتشرشده هرگز عوض نمی‌شود؛ هر نسخهٔ جدید تگ و نشانی خودش را دارد.</li>
+</ol>
+
+<!-- ======================= ۱۵. بهینه‌سازی ======================= -->
+<h1 class="chapter" id="ch-tuning">بهینه‌سازی سمت کاربر</h1>
+<p class="lead">اپ کاهش پینگ فقط بخش بین‌الملل مسیر را بهتر می‌کند. اقدامات زیر بخش‌های دیگر را پوشش می‌دهند و اغلب به همان اندازه اثر دارند.</p>
+<table>
+  <thead><tr><th style="width:30%">اقدام</th><th style="width:14%">اثر</th><th>توضیح</th></tr></thead>
+  <tbody>
+    <tr><td>کابل اترنت به‌جای Wi-Fi</td><td>زیاد</td><td>حذف رقابت و تداخل رادیویی؛ بیشترین اثر روی جیتر و افت بسته.</td></tr>
+    <tr><td>Wi-Fi باند ۵ یا ۶ گیگاهرتز</td><td>متوسط</td><td>اگر کابل ممکن نیست؛ نزدیک به روتر و بدون دیوارهای ضخیم.</td></tr>
+    <tr><td>کنترل دانلودهای هم‌زمان</td><td>زیاد</td><td>به‌روزرسانی ویندوز، لانچرها، فضای ابری و استریم دیگر اعضای خانه را هنگام بازی متوقف یا محدود کنید.</td></tr>
+    <tr><td>SQM یا QoS روی روتر</td><td>زیاد</td><td>درمان Bufferbloat (فصل ۱۰).</td></tr>
+    <tr><td>انتخاب منطقهٔ سرور درست در بازی</td><td>زیاد</td><td>نزدیک‌ترین منطقه با کمترین پینگ واقعی، نه لزوماً نزدیک‌ترین روی نقشه.</td></tr>
+    <tr><td>یک تونل در هر زمان</td><td>متوسط</td><td>VPNها و اپ‌های کاهش پینگ دیگر را هنگام استفاده از Shelter ببندید.</td></tr>
+    <tr><td>درایور به‌روز کارت شبکه</td><td>کم تا متوسط</td><td>به‌ویژه برای کارت‌های Wi-Fi.</td></tr>
+    <tr><td>حالت مصرف انرژی «High performance»</td><td>کم</td><td>در لپ‌تاپ‌ها مانع کاهش توان کارت شبکه می‌شود.</td></tr>
+  </tbody>
+</table>
+
+<h2>باورهای نادرست رایج</h2>
+<table>
+  <thead><tr><th style="width:34%">باور</th><th>واقعیت</th></tr></thead>
+  <tbody>
+    <tr><td>«DNS گیمینگ پینگ را کم می‌کند»</td><td>DNS فقط نام را به IP تبدیل می‌کند؛ مسیر بسته‌ها به IP ثابت سرور بازی را تغییر نمی‌دهد. اثر آن محدود به انتخاب سرور یا CDN و دسترسی لانچر است.</td></tr>
+    <tr><td>«تنظیمات رجیستری TCP پینگ بازی را کم می‌کند»</td><td>تنظیماتی مثل <code>TcpNoDelay</code> یا <code>TcpAckFrequency</code> فقط روی TCP اثر دارند؛ بیشتر بازی‌های رقابتی UDP هستند.</td></tr>
+    <tr><td>«اینترنت سریع‌تر یعنی پینگ کمتر»</td><td>پهنای باند و تأخیر دو مفهوم جدا هستند. فقط زمانی کمک می‌کند که لینک فعلی زیر بار اشباع شود.</td></tr>
+    <tr><td>«هر اپ کاهش پینگ همیشه پینگ را کم می‌کند»</td><td>اگر مسیر مستقیم از قبل خوب باشد، تونل چند میلی‌ثانیه سربار اضافه می‌کند. همیشه با و بدون اپ مقایسه کنید.</td></tr>
+  </tbody>
+</table>
+
+<!-- ======================= ۱۶. سنجش و عیب‌یابی ======================= -->
+<h1 class="chapter" id="ch-measure">سنجش و عیب‌یابی اتصال بازی</h1>
+
+<h2>ابزارها</h2>
+<pre><span class="k">ping</span> -n 100 &lt;server-ip&gt;                   <span class="c">rem RTT and loss</span>
+<span class="k">tracert</span> -d &lt;server-ip&gt;                    <span class="c">rem hops, no reverse DNS</span>
+<span class="k">pathping</span> -n &lt;server-ip&gt;                   <span class="c">rem per-hop loss over ~5 minutes</span>
+<span class="k">Test-NetConnection</span> &lt;host&gt; -Port 443 -InformationLevel Detailed</pre>
+<p>پینگ درون بازی (منوی آمار شبکه یا net graph) ملاک نهایی است. ابزار WinMTR ترکیب tracert و ping را به‌صورت پیوسته نشان می‌دهد.</p>
+
+<h2>اسکریپت سنجش پینگ، جیتر و افت</h2>
+<pre><span class="k">param</span>([string]$Target = <span class="s">"1.1.1.1"</span>, [int]$Count = 100)
+$ping = [System.Net.NetworkInformation.Ping]::new()
+$rtt  = [System.Collections.Generic.List[double]]::new()
+$lost = 0
+<span class="k">for</span> ($i = 0; $i -lt $Count; $i++) {
+    $r = $ping.Send($Target, 1000)
+    <span class="k">if</span> ($r.Status -eq <span class="s">'Success'</span>) { $rtt.Add($r.RoundtripTime) } <span class="k">else</span> { $lost++ }
+    <span class="k">Start-Sleep</span> -Milliseconds 200
+}
+<span class="k">if</span> ($rtt.Count -gt 0) {
+    $s = $rtt | <span class="k">Measure-Object</span> -Average -Minimum -Maximum
+    $jitter = 0
+    <span class="k">for</span> ($i = 1; $i -lt $rtt.Count; $i++) { $jitter += [math]::Abs($rtt[$i] - $rtt[$i - 1]) }
+    <span class="k">if</span> ($rtt.Count -gt 1) { $jitter /= ($rtt.Count - 1) }
+    <span class="s">"{0}: avg {1:N1} ms  min {2} ms  max {3} ms  jitter {4:N1} ms  loss {5:P1}"</span> -f `
+        $Target, $s.Average, $s.Minimum, $s.Maximum, $jitter, ($lost / $Count)
+}</pre>
+<p class="small">جیتر در این اسکریپت میانگین اختلاف RTT بسته‌های پیاپی است. یک بار با Shelter و یک بار بدون آن، در ساعات مشابه اجرا کنید.</p>
+
+<h2>آزمون MTU</h2>
+<p>اگر بازی وصل می‌شود اما دانلود درون بازی، صفحه‌های بزرگ یا اتصال‌های TLS گیر می‌کنند، MTU مشکوک است. با پرچم «عدم تکه‌تکه شدن» بزرگ‌ترین اندازهٔ عبوری را پیدا کنید (اندازهٔ داده + ۲۸ بایت سرآیند = MTU):</p>
+<pre><span class="k">ping</span> -f -l 1372 &lt;server-ip&gt;      <span class="c">rem 1372 + 28 = 1400</span>
+<span class="k">netsh</span> interface ipv4 show subinterfaces   <span class="c">rem MTU per interface</span></pre>
+
+<h2>بررسی وضعیت Shelter</h2>
+<pre><span class="k">Get-Service</span> shelter                         <span class="c"># Running / Stopped</span>
+<span class="k">sc.exe</span> qc shelter                          <span class="c"># binary path, start type, account</span>
+<span class="k">Get-NetAdapter</span> -IncludeHidden | Format-Table Name, InterfaceDescription, Status, ifIndex
+<span class="k">Get-NetRoute</span> -AddressFamily IPv4 | Sort-Object RouteMetric | Select-Object -First 20
+<span class="k">Get-NetUDPEndpoint</span> | Where-Object OwningProcess -eq (<span class="k">Get-Process</span> &lt;game&gt;).Id
+<span class="k">netsh</span> wfp show filters file=<span class="s">"$env:TEMP\filters.xml"</span>    <span class="c"># admin; search for Shelter</span></pre>
+<p>رویدادهای سرویس در <kbd>Event Viewer</kbd> ← <kbd>Windows Logs</kbd> ← <kbd>System</kbd> با منبع <span class="en">Service Control Manager</span> ثبت می‌شوند. برای اینکه ببینید ترافیک یک بازی از تونل می‌رود، آدرس محلی سوکت‌های آن (<code>Get-NetUDPEndpoint</code>) را با IP آداپتور Wintun مقایسه کنید.</p>
+
+<h2>جدول عیب‌یابی</h2>
+<table>
+  <thead><tr><th style="width:26%">علامت</th><th style="width:34%">علت محتمل</th><th>اقدام</th></tr></thead>
+  <tbody>
+    <tr><td>پینگ با Shelter بیشتر شد</td><td>مسیر مستقیم از قبل بهتر است یا سرور انتخاب‌شده مناسب نیست</td><td>سرور یا منطقهٔ دیگری را امتحان کنید؛ با اسکریپت بالا مقایسه کنید.</td></tr>
+    <tr><td>لانچر کار می‌کند، بازی وصل نمی‌شود</td><td>ترافیک UDP بازی از تونل عبور نمی‌کند یا سرور بازی IP را مسدود کرده است</td><td>انتخاب بازی/منطقه در Shelter؛ بررسی سوکت‌های بازی.</td></tr>
+    <tr><td>قطع ناگهانی در میانهٔ مسابقه</td><td>تعویض مسیر خروجی، ناپایداری Wi-Fi یا محدودسازی پروتکل در مسیر</td><td>کابل؛ ثابت نگه داشتن سرور؛ بررسی رویدادها.</td></tr>
+    <tr><td>گیر کردن دانلود یا صفحه‌های بزرگ</td><td>MTU</td><td>آزمون MTU؛ گزارش به پشتیبانی.</td></tr>
+    <tr><td>اینترنت پس از بسته شدن ناگهانی برنامه قطع است</td><td>مسیرها یا فیلترهای باقی‌مانده</td><td>اجرای دوبارهٔ Shelter و قطع عادی؛ در غیر این صورت راه‌اندازی مجدد ویندوز.</td></tr>
+    <tr><td>سرویس <code>shelter</code> اجرا نمی‌شود</td><td>نبود دسترسی Administrator یا تداخل با نرم‌افزار امنیتی</td><td>اجرا با Run as administrator؛ بررسی Event Viewer؛ استثنا در آنتی‌ویروس.</td></tr>
+    <tr><td>تداخل با VPN دیگر</td><td>دو آداپتور مجازی و مسیرهای پیش‌فرض رقیب</td><td>فقط یک تونل فعال باشد.</td></tr>
+    <tr><td>نصب: «A newer version… is already installed»</td><td>جلوگیری از نصب نسخهٔ قدیمی‌تر</td><td>ابتدا نسخهٔ جدیدتر را حذف کنید.</td></tr>
+    <tr><td>DNS رفع تحریم با فعال شدن Shelter از کار افتاد</td><td>اولویت DNS آداپتور تونل</td><td>قاعدهٔ NRPT برای دامنه‌های لازم (فصل ۸).</td></tr>
+  </tbody>
+</table>
+
+<!-- ======================= ۱۷. امنیت ======================= -->
+<h1 class="chapter" id="ch-security">امنیت و حریم خصوصی اپ کاهش پینگ</h1>
+
+<h2>مدل دسترسی</h2>
+<p>هر اپ تونل به دسترسی بالا نیاز دارد: ساخت سرویس، نصب درایور، تغییر مسیرها و افزودن فیلترهای WFP. بنابراین هر ضعف در آن، اثر سیستمی دارد.</p>
+<ul>
+  <li><span class="tag rec">پیشنهاد</span> رابط کاربری بدون دسترسی Administrator اجرا شود و فقط سرویس با LocalSystem کار کند؛ ارتباط این دو از طریق Named Pipe با ACL محدود به کاربران مجاز.</li>
+  <li><span class="tag rec">پیشنهاد</span> سرویس هر فرمان دریافتی را اعتبارسنجی کند و هیچ مسیر فایل یا فرمان دلخواهی را از رابط کاربری اجرا نکند.</li>
+  <li><span class="tag rec">پیشنهاد</span> فیلترهای WFP در نشست پویا ساخته شوند تا با خروج غیرعادی پروسه، اینترنت کاربر قطع نماند.</li>
+</ul>
+
+<h2>زنجیرهٔ تأمین</h2>
+<ul>
+  <li>نصب‌کنندهٔ فعلی امضا ندارد؛ <b>بررسی SHA-256 الزامی است</b> و هش در <code>SHA256SUMS.txt</code>، README و یادداشت انتشار منتشر شده است.</li>
+  <li>درایور Wintun توسط WireGuard LLC ساخته و امضا شده است.</li>
+  <li>مجوز اجزای متن‌باز در فایل <code>NOTICES</code> درون بستهٔ برنامه آمده است.</li>
+  <li><span class="tag rec">پیشنهاد</span> امضای Authenticode برای همهٔ فایل‌ها، ساخت تکرارپذیر و انتشار هش همهٔ فایل‌ها.</li>
+</ul>
+
+<h2>حریم خصوصی ترافیک</h2>
+<table>
+  <thead><tr><th style="width:36%">طرف</th><th>چه می‌بیند</th></tr></thead>
+  <tbody>
+    <tr><td>اپراتور اینترنت</td><td>اتصال رمزشده به سرور ورودی؛ نه محتوا و نه مقصد نهایی ترافیک تونل‌شده.</td></tr>
+    <tr><td>سرورهای تونل</td><td>IP کاربر، مقصد ترافیک تونل‌شده (سرور بازی)، زمان و حجم.</td></tr>
+    <tr><td>سرور بازی</td><td>IP رلهٔ خروجی.</td></tr>
+  </tbody>
+</table>
+<p><span class="tag rec">پیشنهاد</span> سیاست نگهداری داده (چه چیزی و تا چه مدت ثبت می‌شود) به‌روشنی به کاربر اعلام شود.</p>
+
+<!-- ======================= ۱۸. ملاحظات حقوقی ======================= -->
+<h1 class="chapter" id="ch-legal">ملاحظات حقوقی و قوانین استفاده</h1>
+<ul>
+  <li>این سند صرفاً فنی است و توصیهٔ حقوقی نیست. کاربر مسئول رعایت قوانین محلی و شرایط استفادهٔ سرویس‌هاست.</li>
+  <li>برخی سرویس‌دهندگان خارجی در شرایط استفادهٔ خود، استفاده از کشورهای تحریم‌شده را منع کرده‌اند و ممکن است حساب کاربری را محدود یا مسدود کنند؛ تغییر مسیر شبکه این ریسک را از بین نمی‌برد.</li>
+  <li>برخی بازی‌ها استفاده از ابزارهای تغییر مسیر را محدود می‌کنند؛ پیش از استفاده، قوانین بازی را بررسی کنید.</li>
+  <li>DNS رفع تحریم و اپ کاهش پینگ برای دسترسی به محتوای فیلترشده طراحی نشده‌اند.</li>
+</ul>
+
+<!-- ======================= ۱۹. پرسش‌های متداول ======================= -->
+<h1 class="chapter" id="ch-faq">پرسش‌های متداول</h1>
+<dl class="glossary">
+  <dt>آیا DNS رفع تحریم همان VPN است؟</dt>
+  <dd>خیر. فقط پاسخ DNS را برای دامنه‌های فهرست تغییر می‌دهد و یک پراکسی، اتصال TLS را بدون رمزگشایی عبور می‌دهد. نه رمزنگاری اضافه دارد، نه UDP را پوشش می‌دهد.</dd>
+  <dt>چرا با وجود DNS رفع تحریم هنوز خطای ۴۰۳ می‌گیرم؟</dt>
+  <dd>رایج‌ترین دلایل: دامنه در فهرست نیست، DoH مرورگر فعال است، رکورد IPv6 مستقیم استفاده می‌شود، کش قدیمی، یا تحریم مبتنی بر حساب است (فصل ۹).</dd>
+  <dt>آیا DNS پینگ بازی را کم می‌کند؟</dt>
+  <dd>خیر. مسیر بسته‌ها به سرور بازی را تغییر نمی‌دهد.</dd>
+  <dt>آیا Shelter و DNS رفع تحریم را می‌توان هم‌زمان استفاده کرد؟</dt>
+  <dd>بله. برای دامنه‌های تحریمی وب قاعدهٔ NRPT تعریف کنید تا با فعال شدن آداپتور تونل از کار نیفتد (فصل ۱۳ و ۸).</dd>
+  <dt>چرا آدرس‌های <code>10.202.x.x</code> بیرون از ایران یا پشت VPN کار نمی‌کنند؟</dt>
+  <dd>این آدرس‌ها خصوصی‌اند و فقط درون شبکهٔ اپراتورهای داخلی مسیریابی می‌شوند.</dd>
+  <dt>چرا Shelter دسترسی Administrator می‌خواهد؟</dt>
+  <dd>برای ساخت سرویس، آداپتور Wintun و قواعد WFP در زمان اجرا.</dd>
+  <dt>چرا ویندوز هنگام نصب هشدار می‌دهد؟</dt>
+  <dd>نصب‌کننده هنوز امضای دیجیتال ندارد. هش SHA-256 را بررسی کنید و سپس ادامه دهید.</dd>
+  <dt>آیا DNS رفع تحریم امن است؟</dt>
+  <dd>تا وقتی گواهی‌ها معتبرند، محتوای HTTPS محفوظ است؛ اما سرویس‌دهنده نام دامنه‌ها را می‌بیند. فقط از سرویس معتبر و ترجیحاً به‌صورت Split DNS استفاده کنید.</dd>
+</dl>
+
+<!-- ======================= ۲۰. واژه‌نامه ======================= -->
+<h1 class="chapter" id="ch-glossary">واژه‌نامه</h1>
+<div class="two-col">
+<dl class="glossary">
+  <dt>AEAD</dt><dd>رمزنگاری با احراز اصالت هم‌زمان؛ مانند ChaCha20-Poly1305.</dd>
+  <dt>BGP</dt><dd>پروتکل مسیریابی بین شبکه‌های مستقل اینترنت.</dd>
+  <dt>Bufferbloat</dt><dd>افزایش شدید تأخیر به‌دلیل بافرهای بزرگ و پر.</dd>
+  <dt>CDN</dt><dd>شبکهٔ توزیع محتوا با سرورهای پراکنده.</dd>
+  <dt>DoH / DoT / DoQ</dt><dd>DNS رمزشده روی HTTPS، TLS و QUIC.</dd>
+  <dt>ECH</dt><dd>رمزنگاری ClientHello در TLS که SNI را پنهان می‌کند.</dd>
+  <dt>EDNS Client Subnet</dt><dd>افزونهٔ DNS برای ارسال بخشی از IP کاربر به سرور معتبر.</dd>
+  <dt>GeoIP</dt><dd>تعیین موقعیت جغرافیایی از روی IP.</dd>
+  <dt>Jitter (جیتر)</dt><dd>نوسان تأخیر بین بسته‌های پیاپی.</dd>
+  <dt>MTU</dt><dd>بزرگ‌ترین اندازهٔ بسته‌ای که بدون تکه‌شدن عبور می‌کند.</dd>
+  <dt>NAT</dt><dd>ترجمهٔ نشانی شبکه.</dd>
+  <dt>NRPT</dt><dd>جدول سیاست حل نام در ویندوز؛ پایهٔ Split DNS.</dd>
+  <dt>Overlay (هم‌پوشان)</dt><dd>شبکه‌ای از رله‌ها روی اینترنت با مسیریابی مستقل.</dd>
+  <dt>QUIC / HTTP/3</dt><dd>پروتکل انتقال رمزشده روی UDP.</dd>
+  <dt>Resolver</dt><dd>سروری که نام دامنه را به‌صورت بازگشتی حل می‌کند.</dd>
+  <dt>RTT</dt><dd>زمان رفت‌وبرگشت؛ همان پینگ.</dd>
+  <dt>SNI</dt><dd>نام سرور مقصد در پیام ClientHello پروتکل TLS.</dd>
+  <dt>Split DNS</dt><dd>ارسال پرس‌وجوی دامنه‌های مشخص به Resolver مشخص.</dd>
+  <dt>Split Tunneling</dt><dd>عبور فقط بخشی از ترافیک از تونل.</dd>
+  <dt>Tick rate</dt><dd>تعداد به‌روزرسانی وضعیت بازی در ثانیه.</dd>
+  <dt>TTL</dt><dd>مدت اعتبار پاسخ DNS در کش.</dd>
+  <dt>TUN</dt><dd>آداپتور مجازی لایهٔ ۳ برای تونل‌ها.</dd>
+  <dt>WFP</dt><dd>چارچوب فیلترینگ ترافیک در هستهٔ ویندوز.</dd>
+  <dt>Wintun</dt><dd>درایور TUN ویندوز ساخت WireGuard LLC.</dd>
+</dl>
+</div>
+
+<!-- ======================= پیوست الف ======================= -->
+<h1 class="chapter" data-num="الف" id="ap-cheat">پیوست: برگهٔ مرجع فرمان‌ها</h1>
+<table>
+  <thead><tr><th style="width:30%">کار</th><th class="ltr">فرمان</th></tr></thead>
+  <tbody>
+    <tr><td>تنظیم DNS (ویندوز)</td><td class="ltr"><code>Set-DnsClientServerAddress -InterfaceAlias "Wi-Fi" -ServerAddresses 178.22.122.100,185.51.200.2</code></td></tr>
+    <tr><td>بازگردانی DNS</td><td class="ltr"><code>Set-DnsClientServerAddress -InterfaceAlias "Wi-Fi" -ResetServerAddresses</code></td></tr>
+    <tr><td>پاک کردن کش</td><td class="ltr"><code>ipconfig /flushdns</code> · <code>Clear-DnsClientCache</code></td></tr>
+    <tr><td>Split DNS</td><td class="ltr"><code>Add-DnsClientNrptRule -Namespace ".example.com" -NameServers 178.22.122.100</code></td></tr>
+    <tr><td>بررسی پاسخ DNS</td><td class="ltr"><code>Resolve-DnsName example.com -Server 178.22.122.100 -DnsOnly</code></td></tr>
+    <tr><td>کد HTTP و IP مقصد</td><td class="ltr"><code>curl.exe -sS -o NUL -w "%{http_code} %{remote_ip}\n" https://example.com/</code></td></tr>
+    <tr><td>پینگ و افت</td><td class="ltr"><code>ping -n 100 &lt;ip&gt;</code> · <code>pathping -n &lt;ip&gt;</code></td></tr>
+    <tr><td>مسیر</td><td class="ltr"><code>tracert -d &lt;ip&gt;</code></td></tr>
+    <tr><td>MTU</td><td class="ltr"><code>ping -f -l 1372 &lt;ip&gt;</code></td></tr>
+    <tr><td>هش نصب‌کننده</td><td class="ltr"><code>Get-FileHash .\Shelter-1.0.0.msi -Algorithm SHA256</code></td></tr>
+    <tr><td>نصب بی‌صدا</td><td class="ltr"><code>msiexec /i Shelter-1.0.0.msi /qn /norestart</code></td></tr>
+    <tr><td>حذف بی‌صدا</td><td class="ltr"><code>msiexec /x {C1233F58-F2F3-44F6-96BF-981111C60865} /qn /norestart</code></td></tr>
+    <tr><td>وضعیت سرویس</td><td class="ltr"><code>Get-Service shelter</code> · <code>sc.exe qc shelter</code></td></tr>
+    <tr><td>آداپتورها</td><td class="ltr"><code>Get-NetAdapter -IncludeHidden</code></td></tr>
+    <tr><td>فیلترهای WFP</td><td class="ltr"><code>netsh wfp show filters file=filters.xml</code></td></tr>
+  </tbody>
+</table>
+
+<!-- ======================= پیوست ب ======================= -->
+<h1 class="chapter" data-num="ب" id="ap-refs">پیوست: منابع</h1>
+<table>
+  <thead><tr><th style="width:30%">موضوع</th><th class="ltr">منبع</th></tr></thead>
+  <tbody>
+    <tr><td>DNS</td><td class="ltr">RFC 1034, RFC 1035 — Domain Names</td></tr>
+    <tr><td>SNI</td><td class="ltr">RFC 6066 — TLS Extensions (Server Name Indication)</td></tr>
+    <tr><td>TLS 1.3</td><td class="ltr">RFC 8446</td></tr>
+    <tr><td>DoT / DoH / DoQ</td><td class="ltr">RFC 7858, RFC 8484, RFC 9250</td></tr>
+    <tr><td>DNSSEC</td><td class="ltr">RFC 4033</td></tr>
+    <tr><td>EDNS Client Subnet</td><td class="ltr">RFC 7871</td></tr>
+    <tr><td>آدرس‌های خصوصی و مستندسازی</td><td class="ltr">RFC 1918, RFC 5737</td></tr>
+    <tr><td>QUIC</td><td class="ltr">RFC 9000</td></tr>
+    <tr><td>FQ-CoDel</td><td class="ltr">RFC 8290</td></tr>
+    <tr><td>شبکه‌های هم‌پوشان</td><td class="ltr">Andersen et al., "Resilient Overlay Networks", SOSP 2001</td></tr>
+    <tr><td>Wintun</td><td class="ltr">wintun.net — API reference (wintun.h)</td></tr>
+    <tr><td>WFP و NRPT</td><td class="ltr">Microsoft Learn — Windows Filtering Platform; Add-DnsClientNrptRule</td></tr>
+    <tr><td>WiX Toolset</td><td class="ltr">wixtoolset.org — MajorUpgrade, Launch, RegistrySearch</td></tr>
+    <tr><td>Shelter</td><td class="ltr">README.md, RELEASE.md, RELEASE_NOTES.md, Shelter-1.0.0.msi (iceberg-rog/Shelter-App)</td></tr>
+  </tbody>
+</table>
+
+
+
+
+
+
+</main>
+</body>
+</html>

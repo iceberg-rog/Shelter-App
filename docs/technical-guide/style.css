@@ -1,0 +1,226 @@
+/* مستندات فنی Shelter — استایل چاپ (A4، راست‌به‌چپ) */
+
+@font-face { font-family: "Vazirmatn"; font-weight: 400; src: url("fonts/Vazirmatn-Regular.woff2") format("woff2"); }
+@font-face { font-family: "Vazirmatn"; font-weight: 500; src: url("fonts/Vazirmatn-Medium.woff2") format("woff2"); }
+@font-face { font-family: "Vazirmatn"; font-weight: 600; src: url("fonts/Vazirmatn-SemiBold.woff2") format("woff2"); }
+@font-face { font-family: "Vazirmatn"; font-weight: 700; src: url("fonts/Vazirmatn-Bold.woff2") format("woff2"); }
+@font-face { font-family: "Vazirmatn"; font-weight: 800; src: url("fonts/Vazirmatn-ExtraBold.woff2") format("woff2"); }
+@font-face { font-family: "JetBrains Mono"; font-weight: 400; src: url("fonts/JetBrainsMono-400.woff2") format("woff2"); }
+@font-face { font-family: "JetBrains Mono"; font-weight: 700; src: url("fonts/JetBrainsMono-700.woff2") format("woff2"); }
+
+:root {
+  --ink: #18212c;
+  --ink-2: #3d4a5a;
+  --muted: #6b7787;
+  --line: #d9dee5;
+  --paper: #ffffff;
+  --tint: #f4f6f9;
+  --brand: #12395f;
+  --brand-2: #1d5c8f;
+  --accent: #0f8a7e;
+  --code-bg: #f3f5f8;
+  --info: #1d5c8f;   --info-bg: #eef4fa;
+  --warn: #9a5b00;   --warn-bg: #fdf5e6;
+  --fact: #1b6b3a;   --fact-bg: #edf7f0;
+  --pattern: #5a4a8a; --pattern-bg: #f3f0fa;
+}
+
+@page {
+  size: A4;
+  margin: 22mm 18mm 20mm 18mm;
+  @top-right {
+    content: "مستندات فنی Shelter";
+    font-family: "Vazirmatn"; font-size: 8pt; color: #8a95a3;
+    vertical-align: bottom; padding-bottom: 4mm;
+  }
+  @top-left {
+    content: "DNS رفع تحریم و کاهش پینگ";
+    font-family: "Vazirmatn"; font-size: 8pt; color: #8a95a3;
+    vertical-align: bottom; padding-bottom: 4mm;
+  }
+  @bottom-center {
+    content: counter(page, persian);
+    font-family: "Vazirmatn"; font-size: 9pt; color: #6b7787;
+  }
+}
+@page :first {
+  margin: 0;
+  @top-right { content: none; }
+  @top-left { content: none; }
+  @bottom-center { content: none; }
+}
+
+* { box-sizing: border-box; }
+html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: "Vazirmatn", sans-serif;
+  font-size: 10.4pt;
+  line-height: 1.9;
+  text-align: justify;
+  text-justify: inter-word;
+}
+
+/* ---------- جلد ---------- */
+.cover {
+  width: 210mm; height: 297mm;
+  position: relative; overflow: hidden;
+  background: linear-gradient(160deg, #0c2742 0%, #12395f 55%, #0f5a6e 100%);
+  color: #fff;
+  break-after: page;
+  text-align: right;
+}
+.cover .grid { position: absolute; inset: 0; opacity: .08; }
+.cover .inner { position: absolute; top: 34mm; right: 22mm; left: 22mm; }
+.cover .kicker { font-size: 11pt; letter-spacing: .02em; color: #9fd3cc; font-weight: 600; margin: 0 0 6mm; }
+.cover .title { font-size: 30pt; line-height: 1.45; margin: 0 0 6mm; font-weight: 800; color: #fff; }
+.cover .sub { font-size: 13pt; line-height: 1.9; color: #d6e3ef; max-width: 150mm; margin: 0; }
+.cover .emblem { position: absolute; left: 22mm; top: 120mm; width: 78mm; height: 78mm; }
+.cover .meta {
+  position: absolute; right: 22mm; bottom: 26mm; left: 22mm;
+  border-top: 1px solid rgba(255,255,255,.25); padding-top: 6mm;
+  display: flex; gap: 14mm; font-size: 9.5pt; color: #cfdbe7;
+}
+.cover .meta b { display: block; color: #fff; font-weight: 600; font-size: 10.5pt; }
+
+/* ---------- عنوان‌ها ---------- */
+h1, h2, h3, h4 { text-align: right; color: var(--brand); break-after: avoid; }
+h1.chapter {
+  break-before: page;
+  font-size: 21pt; font-weight: 800; line-height: 1.5;
+  margin: 0 0 7mm; padding-bottom: 4mm;
+  border-bottom: 2.5px solid var(--brand);
+}
+h1.chapter .num {
+  display: inline-block; min-width: 11mm; margin-left: 3mm;
+  color: var(--accent);
+}
+h2 { font-size: 14pt; font-weight: 700; margin: 8mm 0 2.5mm; }
+h2 .secnum { display: inline-block; unicode-bidi: isolate; color: var(--accent); margin-left: 3mm; }
+h3 { font-size: 11.5pt; font-weight: 700; margin: 5.5mm 0 1.5mm; color: var(--brand-2); }
+h4 { font-size: 10.5pt; font-weight: 700; margin: 4mm 0 1mm; color: var(--ink-2); }
+p { margin: 0 0 3mm; orphans: 3; widows: 3; }
+.lead { font-size: 11.2pt; color: var(--ink-2); }
+strong, b { font-weight: 700; }
+a { color: var(--brand-2); text-decoration: none; }
+ul, ol { margin: 0 0 3.5mm; padding-right: 6mm; padding-left: 0; }
+ol { list-style-type: persian; }
+li { margin-bottom: 1.2mm; }
+li::marker { color: var(--accent); }
+hr { border: 0; border-top: 1px solid var(--line); margin: 6mm 0; }
+
+/* متن لاتین و کد درون‌خطی */
+.en, code, kbd { unicode-bidi: isolate; direction: ltr; }
+code {
+  font-family: "JetBrains Mono", monospace; font-size: 8.6pt;
+  background: var(--code-bg); border: 1px solid #e3e7ec; border-radius: 3px;
+  padding: 0 1.2mm;
+}
+kbd {
+  font-family: "Vazirmatn", sans-serif; font-size: 8.8pt;
+  border: 1px solid #c9d0d9; border-bottom-width: 2px; border-radius: 3px;
+  padding: 0 1.4mm; background: #fff;
+}
+
+/* بلوک کد */
+pre {
+  direction: ltr; text-align: left;
+  font-family: "JetBrains Mono", monospace; font-size: 8.3pt; line-height: 1.6;
+  background: var(--code-bg); color: #1f2a37;
+  border: 1px solid #e1e6ec; border-left: 3px solid var(--brand-2);
+  border-radius: 4px;
+  padding: 3mm 4mm; margin: 0 0 4mm;
+  white-space: pre-wrap; word-break: break-word;
+  break-inside: avoid;
+}
+pre .c { color: #6b7787; }        /* توضیح */
+pre .k { color: #0f6e64; font-weight: 700; }  /* کلیدواژه/فرمان */
+pre .s { color: #8a4b08; }        /* رشته/مقدار */
+.pre-title {
+  direction: rtl; font-size: 8.6pt; color: var(--muted); margin: 0 0 1mm; font-weight: 600;
+}
+
+/* ---------- جدول ---------- */
+table {
+  width: 100%; border-collapse: collapse; margin: 1mm 0 5mm;
+  font-size: 9.2pt; line-height: 1.7; text-align: right;
+  break-inside: auto;
+}
+thead { display: table-header-group; }
+tr { break-inside: avoid; }
+th {
+  background: var(--brand); color: #fff; font-weight: 600;
+  padding: 2mm 2.5mm; border: 1px solid var(--brand);
+}
+td { padding: 1.8mm 2.5mm; border: 1px solid var(--line); vertical-align: top; }
+tbody tr:nth-child(even) td { background: var(--tint); }
+td code, th code { font-size: 8pt; }
+td.ltr, th.ltr { direction: ltr; text-align: left; }
+.caption { font-size: 8.8pt; color: var(--muted); margin: -3mm 0 5mm; text-align: center; }
+
+/* ---------- کادرها ---------- */
+.box {
+  border-radius: 5px; padding: 3mm 4mm 1.5mm; margin: 2mm 0 5mm;
+  border-right: 4px solid; break-inside: avoid;
+}
+.box .t { font-weight: 700; display: block; margin-bottom: 1mm; font-size: 9.6pt; }
+.box p:last-child, .box ul:last-child { margin-bottom: 1.5mm; }
+.box.info { background: var(--info-bg); border-color: var(--info); }
+.box.info .t { color: var(--info); }
+.box.warn { background: var(--warn-bg); border-color: #d08a12; }
+.box.warn .t { color: var(--warn); }
+.box.fact { background: var(--fact-bg); border-color: #2f8f55; }
+.box.fact .t { color: var(--fact); }
+.box.pattern { background: var(--pattern-bg); border-color: #7a68b0; }
+.box.pattern .t { color: var(--pattern); }
+
+.tag {
+  display: inline-block; font-size: 7.8pt; font-weight: 700; line-height: 1.5;
+  padding: 0 2mm; border-radius: 10px; vertical-align: 1px; margin-left: 1mm;
+}
+.tag.fact { background: #d7efdf; color: var(--fact); }
+.tag.pattern { background: #e6e0f5; color: var(--pattern); }
+.tag.rec { background: #dcebf8; color: var(--info); }
+
+/* ---------- شکل ---------- */
+figure { margin: 2mm 0 5mm; break-inside: avoid; text-align: center; }
+figure svg { width: 100%; height: auto; display: block; }
+figcaption { font-size: 8.8pt; color: var(--muted); margin-top: 1.5mm; }
+
+/* ---------- فهرست مطالب ---------- */
+.toc h1 { break-before: auto; }
+.toc ol { list-style: none; padding: 0; margin: 0; }
+.toc li { margin: 0; }
+.toc .l1 > a {
+  display: flex; align-items: baseline; gap: 2mm;
+  font-weight: 700; color: var(--brand); font-size: 10.4pt; margin-top: 2.2mm;
+}
+.toc .l2 > a {
+  display: flex; align-items: baseline; gap: 2mm;
+  color: var(--ink-2); font-size: 9.4pt; padding-right: 8mm; line-height: 1.75;
+}
+.toc .dots { flex: 1; border-bottom: 1px dotted #b8c0cb; transform: translateY(-1.2mm); }
+.toc .pg { min-width: 7mm; text-align: left; font-variant-numeric: tabular-nums; }
+.toc .n { color: var(--accent); min-width: 8mm; }
+
+/* ---------- ابزارهای جانبی ---------- */
+.kv { width: 100%; }
+.kv td:first-child { width: 32%; font-weight: 600; color: var(--ink-2); background: var(--tint); }
+.two-col { columns: 2; column-gap: 8mm; }
+.two-col > * { break-inside: avoid; }
+.steps { counter-reset: st; list-style: none; padding-right: 0; }
+.steps > li { counter-increment: st; position: relative; padding-right: 9mm; margin-bottom: 2mm; }
+.steps > li::before {
+  content: counter(st, persian);
+  position: absolute; right: 0; top: .5mm;
+  width: 6mm; height: 6mm; border-radius: 50%;
+  background: var(--brand); color: #fff; font-size: 8.4pt; font-weight: 700;
+  display: flex; align-items: center; justify-content: center; line-height: 1;
+}
+.keep { break-inside: avoid; }
+.small { font-size: 9pt; color: var(--ink-2); }
+.center { text-align: center; }
+.glossary dt { font-weight: 700; color: var(--brand); margin-top: 2mm; break-after: avoid; }
+.glossary dd { margin: 0 0 1.5mm; padding-right: 4mm; }
